@@ -1,0 +1,62 @@
+<th-canvas [thStats]="true" (onRender)="onBeforeRender()" >
+    <th-scene #scene>
+    <!--
+    
+    <th-pointLight
+      [castShadow]="false"
+      [shadowMapHeight]="1024"
+      [shadowMapWidth]="1024"
+    ></th-pointLight>
+    -->
+        <th-ambientLight [color]="['#808080']"> </th-ambientLight>
+        <th-directionalLight
+            [color]="'#ffffff' | color"
+            [intensity]="0.75" >
+        </th-directionalLight>
+
+        <th-object3D [castShadow]="false" [receiveShadow]="false"
+            [rotation]="[0, 0, 45]"
+            [position]="[-50, -20, 0]" >
+
+            <th-mesh [castShadow]="false" [receiveShadow]="false"
+                *ngFor="let data of smokeData"
+                [geometry]="geometry.objRef"
+                [material]="material.objRef"
+                [position]="data.pos"
+                [rotation]="data.rotation"
+                [scale]="data.scale">
+                <!--
+                    Intead of putting the geometry & material here, we bind it by objRef so we can reuse the same reference intead of making copies
+                -->
+            </th-mesh>
+        </th-object3D>
+
+        <th-planeGeometry #geometry [args]="[SMOKE_SIZE, SMOKE_SIZE]">
+        </th-planeGeometry>
+      
+        <th-meshLambertMaterial #material
+            [color]="'#adadad' | color"
+            [transparent]="true"
+            [map]="cloudTexture"
+            >
+        </th-meshLambertMaterial>
+
+        <th-object3D
+            loadGLTF
+            [url]="assetPath"
+            [rotation]="catRotation"
+            [position]="catPosition" >
+        </th-object3D>
+    
+        
+        <!--
+        <th-hemisphereLight [color]="'#aabbcc' | color" ></th-hemisphereLight>
+        [lookAt]="this.catPosition"
+        [args]="[45, 1, 0.1, 10000]"
+        -->
+        <th-perspectiveCamera
+            [position]="camPosition"
+            [lookAt]="lookAtPosition" >
+        </th-perspectiveCamera>
+    </th-scene>
+</th-canvas>
