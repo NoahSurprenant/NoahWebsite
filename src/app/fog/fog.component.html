@@ -1,4 +1,7 @@
-<th-mesh [castShadow]="false" [receiveShadow]="false" (beforeRender)="onBeforeRender()"
+<!-- You *can* hook here with (beforeRender)="onBeforeRender()" but I am not going to because it seems to perform rather poorly
+Down from 144fps to ~40fps. Instead I am just going to call fog comp's onBeforeRender from inside the parent comp's onBeforeRender
+-->
+<th-mesh [castShadow]="false" [receiveShadow]="false" 
     *ngFor="let data of smokeData"
     [geometry]="geometry.objRef"
     [material]="data.material"

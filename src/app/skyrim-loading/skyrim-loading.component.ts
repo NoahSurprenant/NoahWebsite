@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { Clock } from 'three';
 import { ASSET_PATH } from '../assets';
+import { FogComponent } from '../fog/fog.component';
 
 // References:
 // https://github.com/demike/ngx-three/
@@ -21,6 +22,9 @@ export class SkyrimLoadingComponent implements OnInit {
   ngOnInit() {
   }
 
+  @ViewChild('fogComp', { static: true })
+  public fogComp?: FogComponent;
+
   public readonly clock = new Clock(true);
 
   // Cat
@@ -40,8 +44,9 @@ export class SkyrimLoadingComponent implements OnInit {
 
  
   public onBeforeRender() {
-
     const dt = this.clock.getDelta();
+
+    this.fogComp?.onBeforeRender();
 
     // Slowly rotate cat
     if (this.shouldRotate) {
