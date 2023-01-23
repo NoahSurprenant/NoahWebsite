@@ -1,7 +1,6 @@
 <th-canvas [thStats]="true" (onRender)="onBeforeRender()" >
     <th-scene #scene>
     <!--
-    
     <th-pointLight
       [castShadow]="false"
       [shadowMapHeight]="1024"
@@ -14,40 +13,32 @@
             [intensity]="0.75" >
         </th-directionalLight>
 
-        <th-object3D [castShadow]="false" [receiveShadow]="false"
-            [rotation]="[0, 0, 45]"
-            [position]="[-50, -20, 0]" >
+        <th-mesh *ngFor="let p of points"
+            [position]="p" >
+            <th-meshBasicMaterial>
+                <th-boxGeometry></th-boxGeometry>
+            </th-meshBasicMaterial>
+        </th-mesh>
 
-            <th-mesh [castShadow]="false" [receiveShadow]="false"
-                *ngFor="let data of smokeData"
-                [geometry]="geometry.objRef"
-                [material]="material.objRef"
-                [position]="data.pos"
-                [rotation]="data.rotation"
-                [scale]="data.scale">
-                <!--
-                    Intead of putting the geometry & material here, we bind it by objRef so we can reuse the same reference intead of making copies
-                -->
-            </th-mesh>
-        </th-object3D>
+        <th-mesh [castShadow]="false" [receiveShadow]="false"
+            *ngFor="let data of smokeData"
+            [geometry]="geometry.objRef"
+            [material]="data.material"
+            [position]="data.pos"
+            [rotation]="data.rotation"
+            [scale]="data.scale" >
+            <!-- Intead of putting the geometry here, we bind it by objRef so we can reuse the same reference intead of making copies-->
+        </th-mesh>
 
         <th-planeGeometry #geometry [args]="[SMOKE_SIZE, SMOKE_SIZE]">
         </th-planeGeometry>
-      
-        <th-meshLambertMaterial #material
-            [color]="'#adadad' | color"
-            [transparent]="true"
-            [map]="cloudTexture"
-            >
-        </th-meshLambertMaterial>
-
+    
         <th-object3D
             loadGLTF
             [url]="assetPath"
             [rotation]="catRotation"
             [position]="catPosition" >
         </th-object3D>
-    
         
         <!--
         <th-hemisphereLight [color]="'#aabbcc' | color" ></th-hemisphereLight>
@@ -57,6 +48,7 @@
         <th-perspectiveCamera
             [position]="camPosition"
             [lookAt]="lookAtPosition" >
+            <th-orbitControls></th-orbitControls>
         </th-perspectiveCamera>
     </th-scene>
 </th-canvas>
