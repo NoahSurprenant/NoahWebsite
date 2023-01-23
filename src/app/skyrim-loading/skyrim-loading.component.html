@@ -13,25 +13,7 @@
             [intensity]="0.75" >
         </th-directionalLight>
 
-        <th-mesh *ngFor="let p of points"
-            [position]="p" >
-            <th-meshBasicMaterial>
-                <th-boxGeometry></th-boxGeometry>
-            </th-meshBasicMaterial>
-        </th-mesh>
-
-        <th-mesh [castShadow]="false" [receiveShadow]="false"
-            *ngFor="let data of smokeData"
-            [geometry]="geometry.objRef"
-            [material]="data.material"
-            [position]="data.pos"
-            [rotation]="data.rotation"
-            [scale]="data.scale" >
-            <!-- Intead of putting the geometry here, we bind it by objRef so we can reuse the same reference intead of making copies-->
-        </th-mesh>
-
-        <th-planeGeometry #geometry [args]="[SMOKE_SIZE, SMOKE_SIZE]">
-        </th-planeGeometry>
+        <app-fog></app-fog>
     
         <th-object3D
             loadGLTF
@@ -39,7 +21,7 @@
             [rotation]="catRotation"
             [position]="catPosition" >
         </th-object3D>
-        
+
         <!--
         <th-hemisphereLight [color]="'#aabbcc' | color" ></th-hemisphereLight>
         [lookAt]="this.catPosition"

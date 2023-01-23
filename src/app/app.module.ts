@@ -6,11 +6,13 @@ import { AppComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgxThreeModule } from 'ngx-three';
 import { SkyrimLoadingComponent } from './skyrim-loading/skyrim-loading.component';
+import { FogComponent } from './fog/fog.component';
 
 @NgModule({
   declarations: [
     AppComponent,
-    SkyrimLoadingComponent
+    SkyrimLoadingComponent,
+    FogComponent
   ],
   imports: [
     BrowserModule,

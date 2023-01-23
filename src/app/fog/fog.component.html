@@ -1,0 +1,20 @@
+<th-mesh [castShadow]="false" [receiveShadow]="false" (beforeRender)="onBeforeRender()"
+    *ngFor="let data of smokeData"
+    [geometry]="geometry.objRef"
+    [material]="data.material"
+    [position]="data.pos"
+    [rotation]="data.rotation"
+    [scale]="data.scale" >
+    <!-- Intead of putting the geometry here, we bind it by objRef so we can reuse the same reference intead of making copies-->
+</th-mesh>
+
+<th-planeGeometry #geometry [args]="[SMOKE_SIZE, SMOKE_SIZE]">
+</th-planeGeometry>
+
+<th-mesh *ngFor="let p of points"
+    [position]="p" >
+    <th-meshBasicMaterial>
+        <th-boxGeometry>
+        </th-boxGeometry>
+    </th-meshBasicMaterial>
+</th-mesh>
