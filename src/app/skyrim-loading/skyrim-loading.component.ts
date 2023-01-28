@@ -82,20 +82,22 @@ export class SkyrimLoadingComponent implements OnDestroy {
       assetPath:`${ASSET_PATH}dingus.glb`,
       shouldRotate:true,
       caption:"You got a cat",
-
+      attribution: { short:"dingus the cat by bean(alwayshasbean)", long:'"dingus the cat" by bean(alwayshasbean) is licensed under Creative Commons Attribution', url:"https://skfb.ly/oAtMJ"}
     },
     {
       assetPath:`${ASSET_PATH}raspberry_pi_3.glb`,
       shouldRotate:true,
       caption:"3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679",
       scaleOnLoad: new Vector3(2, 2, 2),
-      rotationOnLoad: new Euler(10 * 3.14/180, 0, 0)
+      rotationOnLoad: new Euler(10 * 3.14/180, 0, 0),
+      attribution: { short:"Raspberry Pi 3 by JoSaCo", long:'"Raspberry Pi 3" by JoSaCo is licensed under Creative Commons Attribution', url:"https://skfb.ly/OBDI"}
     },
     {
       assetPath:`${ASSET_PATH}shopping_cart.glb`,
       shouldRotate:true,
       caption:"Carts be a mighty useful tool for any traveler, but be warned, not all carts be in good condition. Ye may come across some with a broken wheel or two, and that can make them quite difficult to maneuver.",
-      scaleOnLoad: new Vector3(2, 2, 2)
+      scaleOnLoad: new Vector3(2, 2, 2),
+      attribution: { short:"Shopping cart model by Jiří Kuba", long:'"Shopping cart model" by Jiří Kuba is licensed under Creative Commons Attribution', url:"https://skfb.ly/6vw6D"}
     },
   ];
   

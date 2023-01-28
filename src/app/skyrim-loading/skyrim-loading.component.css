@@ -1,34 +1,58 @@
-.bottomRight {
-    position: absolute;
-    max-height: fit-content;
-    width: 45%;
-    height: 25%;
-    bottom: 2%;
-    right: 2%;
-    margin: 0px;
-    padding: 0px;
-}
-
 .caption {
+    position: absolute;
+    bottom: 80px;
+    right: 80px;
+    width: 45%;
+    max-height: fit-content;
     margin: 0;
     font-family: futura;
     word-wrap: break-word;
     font-size: 42px;
-    max-height: fit-content;
-    
+    text-align: right;
+    vertical-align: bottom;
 }
 
+.attribution {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    width: 45%;
+    max-height: fit-content;
+    margin: 0;
+    font-family: futura;
+    word-wrap: break-word;
+    font-size: 22px;
+    text-align: left;
+    vertical-align: bottom;
+}
 
 /* @media (max-width: 992px) {
     p { font-size: 42px; }
   } */
 
+@media screen and (max-width: 1000px),
+    screen and (max-height: 600px) {
+    .caption {
+        bottom: 70px;
+        right: 70px;
+        font-size: 36px;
+    }
+}
+
 @media screen and (max-width: 800px),
     screen and (max-height: 400px) {
-    .caption { font-size: 32px; }
+    .caption {
+        bottom: 60px;
+        right: 60px;
+        font-size: 32px;
+    }
 }
 
 @media screen and (max-width: 600px),
     screen and (max-height: 200px){
-    .caption { font-size: 22px; }
+    .caption {
+        bottom: 40px;
+        right: 40px;
+        font-size: 22px;
+    }
 }

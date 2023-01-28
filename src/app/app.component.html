@@ -3,20 +3,20 @@
     <app-skyrim-loading></app-skyrim-loading>
 
     <ul class="list">
-        <li style="font-size: 32px;">
+        <li class="name">
             Noah Surprenant
         </li>
 
         <li (mouseover)="linkedinAnim='beat'" (mouseleave)="linkedinAnim=undefined">
             <a href="https://www.linkedin.com/in/noahsurprenant/" target="_blank" >
-                <fa-icon [icon]="faLinkedin" size="4x" [animation]="linkedinAnim" >
+                <fa-icon [icon]="faLinkedin" [animation]="linkedinAnim" >
                 </fa-icon>
             </a>
         </li>
 
         <li (mouseover)="githubAnim='beat'" (mouseleave)="githubAnim=undefined" >
             <a href="https://github.com/NoahSurprenant" target="_blank" >
-                <fa-icon [icon]="faGithub" size="4x" [animation]="githubAnim">
+                <fa-icon [icon]="faGithub" [animation]="githubAnim">
                 </fa-icon>
             </a>
         </li>

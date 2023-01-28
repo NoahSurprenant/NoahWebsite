@@ -6,5 +6,11 @@ export interface Item {
     caption: string;
     rotationOnLoad?: Euler;
     scaleOnLoad?: Vector3;
+    attribution?: Attribution;
+}
 
+export interface Attribution {
+    short: string;
+    long: string;
+    url?: string;
 }

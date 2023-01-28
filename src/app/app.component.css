@@ -1,7 +1,7 @@
 ul {
     position: absolute;
-    top: 2%;
-    right: 2%;
+    top: 80px;
+    right: 80px;
     display: flex;
     align-items: center;
 }
@@ -13,12 +13,54 @@ li {
     padding-inline: 8px;
 }
 
-/* Remove all default link styling */
-a {
-    all: unset;
+.name {
+    font-size: 2em
 }
 
-/* But I still want the mouse do be a pointer over links */
-a:hover {
-    cursor: pointer;
+fa-icon {
+    font-size: 4em;
+}
+
+
+
+@media screen and (max-width: 1000px),
+    screen and (max-height: 600px) {
+    ul {
+        top: 70px;
+        right: 70px;
+    }
+    fa-icon {
+        font-size: 3.5em;
+    }
+    .name {
+        font-size: 1.75em;
+    }
+}
+
+@media screen and (max-width: 800px),
+    screen and (max-height: 400px) {
+    ul {
+        top: 60px;
+        right: 60px;
+    }
+    fa-icon {
+        font-size: 3em;
+    }
+    .name {
+        font-size: 1.5em;
+    }
+}
+
+@media screen and (max-width: 600px),
+    screen and (max-height: 200px){
+    ul {
+        top: 40px;
+        right: 40px;
+    }
+    fa-icon {
+        font-size: 2em;
+    }
+    .name {
+        font-size: 1em;
+    }
 }

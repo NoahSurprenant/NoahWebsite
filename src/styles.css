@@ -36,3 +36,13 @@ html, body, app-root, .app-frame {
          url('assets/futura-light.otf') format('truetype'),
          url('assets/futura-light.otf') format('svg');
 }
+
+/* Remove all default link styling */
+a {
+    all: unset;
+}
+
+/* But I still want the mouse do be a pointer over links */
+a:hover {
+    cursor: pointer;
+}
