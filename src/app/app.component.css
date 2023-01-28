@@ -2,10 +2,23 @@ ul {
     position: absolute;
     top: 2%;
     right: 2%;
-    list-style: none;
+    display: flex;
+    align-items: center;
 }
 
 li {
+    vertical-align: middle;
+    list-style: none;
     float: left;
-    padding: 6px;
+    padding-inline: 8px;
+}
+
+/* Remove all default link styling */
+a {
+    all: unset;
+}
+
+/* But I still want the mouse do be a pointer over links */
+a:hover {
+    cursor: pointer;
 }

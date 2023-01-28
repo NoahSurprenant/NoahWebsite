@@ -1,9 +1,27 @@
 <div class="mat-typography app-frame mat-app-background" fxLayout="column">
+
     <app-skyrim-loading></app-skyrim-loading>
+
     <ul class="list">
-        <li>Item1</li>
-        <li>Item2</li>
+        <li style="font-size: 32px;">
+            Noah Surprenant
+        </li>
+
+        <li (mouseover)="linkedinAnim='beat'" (mouseleave)="linkedinAnim=undefined">
+            <a href="https://www.linkedin.com/in/noahsurprenant/" target="_blank" >
+                <fa-icon [icon]="faLinkedin" size="4x" [animation]="linkedinAnim" >
+                </fa-icon>
+            </a>
+        </li>
+
+        <li (mouseover)="githubAnim='beat'" (mouseleave)="githubAnim=undefined" >
+            <a href="https://github.com/NoahSurprenant" target="_blank" >
+                <fa-icon [icon]="faGithub" size="4x" [animation]="githubAnim">
+                </fa-icon>
+            </a>
+        </li>
     </ul>
+
 </div>
 
 <router-outlet></router-outlet>
