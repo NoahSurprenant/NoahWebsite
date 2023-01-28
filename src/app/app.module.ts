@@ -7,6 +7,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgxThreeModule } from 'ngx-three';
 import { SkyrimLoadingComponent } from './skyrim-loading/skyrim-loading.component';
 import { FogComponent } from './fog/fog.component';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
 @NgModule({
   declarations: [
@@ -18,7 +19,8 @@ import { FogComponent } from './fog/fog.component';
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,
-    NgxThreeModule
+    NgxThreeModule,
+    FontAwesomeModule
   ],
   providers: [],
   bootstrap: [AppComponent]
