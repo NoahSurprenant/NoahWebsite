@@ -17,9 +17,12 @@
     
         <th-object3D
             loadGLTF
-            [url]="assetPath"
-            [rotation]="catRotation"
-            [position]="catPosition" >
+            [url]="items[itemIndex].assetPath"
+            [rotation]="itemRot"
+            [position]="itemPos"
+            [scale]="itemScale"
+            (onLoaded)="onLoaded()"
+            >
         </th-object3D>
 
         <!--
@@ -30,7 +33,11 @@
         <th-perspectiveCamera
             [position]="camPosition"
             [lookAt]="lookAtPosition" >
-            <th-orbitControls></th-orbitControls>
+            <!--<th-orbitControls></th-orbitControls>-->
         </th-perspectiveCamera>
     </th-scene>
 </th-canvas>
+
+<div class="bottomRight">
+    <p class="caption" [textContent]="items[itemIndex].caption">You got a cat</p>
+</div>

@@ -1,0 +1,11 @@
+ul {
+    position: absolute;
+    top: 2%;
+    right: 2%;
+    list-style: none;
+}
+
+li {
+    float: left;
+    padding: 6px;
+}
