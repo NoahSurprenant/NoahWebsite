@@ -1,5 +1,5 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { Clock, Euler, Object3D, Vector3 } from 'three';
+import { Component, OnDestroy, ViewChild } from '@angular/core';
+import { Clock, Euler, Vector3 } from 'three';
 import { ASSET_PATH } from '../assets';
 import { FogComponent } from '../fog/fog.component';
 import { Item } from '../item';
@@ -81,13 +81,13 @@ export class SkyrimLoadingComponent implements OnDestroy {
     {
       assetPath:`${ASSET_PATH}dingus.glb`,
       shouldRotate:true,
-      caption:"You got a cat",
+      caption:"You have acquired a feline companion, a creature of mystery and power. Its spinning abilities shall prove to be formidable ally in battle and a constant source of amusement.",
       attribution: { short:"dingus the cat by bean(alwayshasbean)", long:'"dingus the cat" by bean(alwayshasbean) is licensed under Creative Commons Attribution', url:"https://skfb.ly/oAtMJ"}
     },
     {
       assetPath:`${ASSET_PATH}raspberry_pi_3.glb`,
       shouldRotate:true,
-      caption:"3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679",
+      caption:"The Raspberry Pi, a small yet powerful device, can be a valuable tool in your journey. With its capability to run various programs and control machinery, it may come in handy on your endeavors.",
       scaleOnLoad: new Vector3(2, 2, 2),
       rotationOnLoad: new Euler(10 * 3.14/180, 0, 0),
       attribution: { short:"Raspberry Pi 3 by JoSaCo", long:'"Raspberry Pi 3" by JoSaCo is licensed under Creative Commons Attribution', url:"https://skfb.ly/OBDI"}
@@ -99,16 +99,28 @@ export class SkyrimLoadingComponent implements OnDestroy {
       scaleOnLoad: new Vector3(2, 2, 2),
       attribution: { short:"Shopping cart model by Jiří Kuba", long:'"Shopping cart model" by Jiří Kuba is licensed under Creative Commons Attribution', url:"https://skfb.ly/6vw6D"}
     },
+    {
+      assetPath:`${ASSET_PATH}club_penguin_recreation.glb`,
+      shouldRotate:true,
+      caption:"'Tis the ancient ritual of Tipping the Iceberg! With a mighty leap, we strike the Iceberg with all our might, causing it to shift and reveal the bounties hidden within.",
+      scaleOnLoad: new Vector3(4, 4, 4),
+      attribution: { short:"Club Penguin recreation by LukeTheLPSWolf", long:'"Club Penguin recreation" by LukeTheLPSWolf is licensed under Creative Commons Attribution', url:"https://skfb.ly/oB86E"}
+    },
+    {
+      assetPath:`${ASSET_PATH}halo_gravity_hammer.glb`,
+      shouldRotate:true,
+      caption:"'Tis the gravity hammer, a weapon of great power and destruction. In the game of Grifball, it is a weapon of great importance. With a swing of this mighty hammer, a warrior can send their foes flying.",
+      scaleOnLoad: new Vector3(0.0075, 0.0075, 0.0075),
+      attribution: { short:"Halo Gravity Hammer by Glitch5970", long:'"Halo Gravity Hammer" by Glitch5970 is licensed under Creative Commons Attribution', url:"https://skfb.ly/6RHzz"}
+    },
   ];
   
   //1° × π/180 = 0.01745rad
   //1rad × 180/π = 57.296°
-  //private readonly MIN_MS: number = 2000;
-  //private readonly MAX_MS: number = 4000;
   private readonly MIN_MS: number = 5000;
   private readonly MAX_MS: number = 15000;
 
-  private moveAmt: number = 0.66;//0.96
+  private moveAmt: number = 0.66;
   private moving: boolean = false;
   private shouldRotate: boolean = true;
   private rotateAmt: number = 0.024;

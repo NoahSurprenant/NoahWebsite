@@ -1,17 +1,15 @@
-<th-canvas [thStats]="true" (onRender)="onBeforeRender()" >
+<th-canvas [thStats]="false" (onRender)="onBeforeRender()" >
     <th-scene #scene>
-    <!--
-    <th-pointLight
-      [castShadow]="false"
-      [shadowMapHeight]="1024"
-      [shadowMapWidth]="1024"
-    ></th-pointLight>
-    -->
-        <th-ambientLight [color]="['#808080']"> </th-ambientLight>
         <th-directionalLight
+            [position]="[1,1,1]"
             [color]="'#ffffff' | color"
-            [intensity]="0.75" >
+            [intensity]="1" >
         </th-directionalLight>
+
+        <!-- <th-pointLight 
+            [position]="camPosition"
+            [intensity]="1">
+        </th-pointLight> -->
 
         <app-fog #fogComp ></app-fog>
     
@@ -25,11 +23,6 @@
             >
         </th-object3D>
 
-        <!--
-        <th-hemisphereLight [color]="'#aabbcc' | color" ></th-hemisphereLight>
-        [lookAt]="this.catPosition"
-        [args]="[45, 1, 0.1, 10000]"
-        -->
         <th-perspectiveCamera
             [position]="camPosition"
             [lookAt]="lookAtPosition" >

@@ -20,6 +20,13 @@
                 </fa-icon>
             </a>
         </li>
+
+        <li (mouseover)="envelopeAnim='beat'" (mouseleave)="envelopeAnim=undefined" >
+            <a href="mailto:noah.surprenant@gmail.com" target="_blank" >
+                <fa-icon [icon]="faEnvelope" [animation]="envelopeAnim">
+                </fa-icon>
+            </a>
+        </li>
     </ul>
 
 </div>
