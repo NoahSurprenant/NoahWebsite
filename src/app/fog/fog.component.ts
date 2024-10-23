@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { TextureLoaderService } from 'ngx-three';
+import { TextureLoaderService } from '@noahsurprenant/ngx-three';
 import * as THREE from 'three';
 import { Clock, Euler, MathUtils, Vector2, Vector3 } from 'three';
 import { ASSET_PATH } from '../assets';
@@ -99,26 +99,26 @@ export class FogComponent {
   }
 
   private initSmokeData() {
-    let cloudText = this.textureLoader.load(this.cloudPath);
-
-    for (let i = 0; i < this.NUM_INSTANCES; i++) {
-      let pos = this.getNewSpawnVector();
-      let originalHeight = pos.y;
-      let maxHeight = originalHeight + this.GetRandomInt(20, 60);
-      let rotation = new Euler(0, 0, 0);
-      let scale = new Vector3(1, 1, 1);
-
-
-      let newZ = Math.random() * 360;
-      rotation.z = newZ * Math.PI / 180
-      
-      let speed = this.GetRandomFloat(0.05, 1);
-
-      let material = new THREE.MeshLambertMaterial();
-      material.map = cloudText;
-      material.transparent = true;
-      this.smokeData.push({pos, rotation, scale, maxHeight, originalHeight, speed, material});
-    }
+    this.textureLoader.load(this.cloudPath, (cloudText) => {
+      for (let i = 0; i < this.NUM_INSTANCES; i++) {
+        let pos = this.getNewSpawnVector();
+        let originalHeight = pos.y;
+        let maxHeight = originalHeight + this.GetRandomInt(20, 60);
+        let rotation = new Euler(0, 0, 0);
+        let scale = new Vector3(1, 1, 1);
+  
+  
+        let newZ = Math.random() * 360;
+        rotation.z = newZ * Math.PI / 180
+        
+        let speed = this.GetRandomFloat(0.05, 1);
+  
+        let material = new THREE.MeshLambertMaterial();
+        material.map = cloudText;
+        material.transparent = true;
+        this.smokeData.push({pos, rotation, scale, maxHeight, originalHeight, speed, material});
+      }
+    });
   }
 
   public onBeforeRender() {
