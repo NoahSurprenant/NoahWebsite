@@ -1,23 +1,25 @@
 <!-- You *can* hook here with (beforeRender)="onBeforeRender()" but I am not going to because it seems to perform rather poorly
 Down from 144fps to ~40fps. Instead I am just going to call fog comp's onBeforeRender from inside the parent comp's onBeforeRender
 -->
-<th-mesh [castShadow]="false" [receiveShadow]="false" 
-    *ngFor="let data of smokeData"
-    [geometry]="geometry.objRef"
-    [material]="data.material"
-    [position]="data.pos"
-    [rotation]="data.rotation"
-    [scale]="data.scale" >
-    <!-- Intead of putting the geometry here, we bind it by objRef so we can reuse the same reference intead of making copies-->
-</th-mesh>
+@for (data of smokeData; track data) {
+    <th-mesh [castShadow]="false" [receiveShadow]="false" 
+        [geometry]="geometry.objRef"
+        [material]="data.material"
+        [position]="data.pos"
+        [rotation]="data.rotation"
+        [scale]="data.scale" >
+    </th-mesh>
+}
 
+<!-- Reusable geometry, used by objRef in above for loop. This allows us to have 1 planeGeometry instead of 1 per smokeData -->
 <th-planeGeometry #geometry [args]="[SMOKE_SIZE, SMOKE_SIZE]">
 </th-planeGeometry>
 
-<th-mesh *ngFor="let p of points"
-    [position]="p" >
-    <th-meshBasicMaterial>
-        <th-boxGeometry>
-        </th-boxGeometry>
-    </th-meshBasicMaterial>
-</th-mesh>
+@for (p of points; track p) {
+    <th-mesh [position]="p">
+        <th-meshBasicMaterial>
+            <th-boxGeometry>
+            </th-boxGeometry>
+        </th-meshBasicMaterial>
+    </th-mesh>
+}

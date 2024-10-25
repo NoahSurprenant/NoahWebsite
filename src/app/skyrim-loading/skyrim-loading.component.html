@@ -11,7 +11,9 @@
             [intensity]="1">
         </th-pointLight> -->
 
-        <app-fog #fogComp ></app-fog>
+        @if (renderFog()) {
+            <app-fog #fogComp ></app-fog>
+        }
     
         <th-object3D
             loadGLTF
@@ -33,12 +35,14 @@
 
 <p class="caption" [textContent]="items[itemIndex].caption">You got a cat</p>
 
-
-<div *ngIf="items[itemIndex].attribution?.url == undefined; else elseBlock">
-    <p class="attribution" [textContent]="items[itemIndex].attribution?.short" [title]="items[itemIndex].attribution?.long"></p>
-</div>
-<ng-template #elseBlock>
-    <a [href]="items[itemIndex].attribution?.url" target="_blank">
+@if (items[itemIndex].attribution?.url == undefined) {
+    <div>
         <p class="attribution" [textContent]="items[itemIndex].attribution?.short" [title]="items[itemIndex].attribution?.long"></p>
-    </a>
-</ng-template>
+    </div>
+} @else {
+    <div>
+        <a [href]="items[itemIndex].attribution?.url" target="_blank">
+            <p class="attribution" [textContent]="items[itemIndex].attribution?.short" [title]="items[itemIndex].attribution?.long"></p>
+        </a>
+    </div>
+}

@@ -1,8 +1,9 @@
-import { Component, OnDestroy, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { Clock, Euler, Vector3 } from 'three';
 import { ASSET_PATH } from '../assets';
 import { FogComponent } from '../fog/fog.component';
 import { Item } from '../item';
+import { getGPUTier } from 'detect-gpu';
 
 // References:
 // https://github.com/demike/ngx-three/
@@ -15,7 +16,7 @@ import { Item } from '../item';
   templateUrl: './skyrim-loading.component.html',
   styleUrls: ['./skyrim-loading.component.css']
 })
-export class SkyrimLoadingComponent implements OnDestroy {
+export class SkyrimLoadingComponent implements OnInit, OnDestroy {
   private readonly DEFAULT_SCALE: Vector3 = new Vector3(1, 1, 1);
   private readonly DEFAULT_ROTATION: Euler = new Euler(0, 0, 0);
   private readonly DEFAULT_LOCATION: Vector3 = new Vector3(0, 0, 0);
@@ -30,10 +31,15 @@ export class SkyrimLoadingComponent implements OnDestroy {
     this.itemIndex = this.getNewItemIndex();
   }
 
+  async ngOnInit(): Promise<void> {
+    const gpuTier = await getGPUTier();
+    this.renderFog.set(gpuTier.tier > 1);
+  }
+
   public toggle() {
     window.clearInterval(this.intervalHandle);
     this.itemIndex = this.getNewItemIndex();
-    console.log("toggle called new index is " + this.itemIndex);
+    //console.log("toggle called new index is " + this.itemIndex);
   }
 
   private GetRandomInt(min: number, max: number)
@@ -67,11 +73,10 @@ export class SkyrimLoadingComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     window.clearInterval(this.intervalHandle);
-    console.log("OnDestroy");
   }
 
-  @ViewChild('fogComp', { static: true })
-  public fogComp?: FogComponent;
+  renderFog = signal(false);
+  fogComp = viewChild<FogComponent>('fogComp');
 
   public readonly clock = new Clock(true);
 
@@ -138,7 +143,7 @@ export class SkyrimLoadingComponent implements OnDestroy {
   public camPosition: Vector3 = new Vector3(0, 0, 80);
 
   public onLoaded() {
-    console.log("on loaded" + this.itemIndex);
+    //console.log("on loaded" + this.itemIndex);
     let currentItem = this.items[this.itemIndex];
 
     // If the newely loaded item specifies a rotation we'll use it, I thinks te cat likes to face the audience
@@ -160,24 +165,25 @@ export class SkyrimLoadingComponent implements OnDestroy {
     }
     
     this.TargetPos = this.getNewTarget();
-    console.log("new target:");
-    console.log(this.TargetPos);
+    //console.log("new target:");
+    //console.log(this.TargetPos);
     this.moving = true;
   }
   
-  private n: number = 0;
+  //private n: number = 0;
 
   public onBeforeRender() {
     const dt = this.clock.getDelta();
 
-    if (this.clock.elapsedTime > this.n + 5) {
-      console.log("current pos before render");
-      console.log(this.itemPos);
-      this.n = this.clock.elapsedTime
-    }
+    if (this.renderFog())
+      this.fogComp()?.onBeforeRender();
 
-    this.fogComp?.onBeforeRender();
-
+    // if (this.clock.elapsedTime > this.n + 5) {
+    //   console.log("current pos before render");
+    //   console.log(this.itemPos);
+    //   this.n = this.clock.elapsedTime
+    // }
+    
     // Slowly rotate
     if (this.shouldRotate) {
       this.itemRot = new Euler(this.itemRot.x, this.itemRot.y + this.rotateAmt * dt, this.itemRot.z);
@@ -185,15 +191,15 @@ export class SkyrimLoadingComponent implements OnDestroy {
 
     if (this.moving && this.TargetPos !== undefined && this.OriginalPos !== undefined) {
       let currentPos = this.itemPos.clone();
-      let targetPos = this.TargetPos.clone();
+      const targetPos = this.TargetPos.clone();
 
-      let direction = targetPos.clone().sub(currentPos).normalize();
+      const direction = targetPos.clone().sub(currentPos).normalize();
       
-      let moveAmt = new Vector3(direction.x * this.moveAmt * dt, direction.y * this.moveAmt * dt, direction.z * this.moveAmt * dt);
+      const moveAmt = new Vector3(direction.x * this.moveAmt * dt, direction.y * this.moveAmt * dt, direction.z * this.moveAmt * dt);
       currentPos.add(moveAmt);
 
       if (currentPos.distanceTo(targetPos) < 0.1) {
-        console.log("got to target");
+        //console.log("got to target");
         currentPos = targetPos;
         this.moving = false;
         let millis = this.GetRandomInt(this.MIN_MS, this.MAX_MS);
