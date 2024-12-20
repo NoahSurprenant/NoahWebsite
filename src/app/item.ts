@@ -1,6 +1,7 @@
 import { Euler, Vector3 } from "three";
 
 export interface Item {
+    perlin: boolean;
     assetPath: string;
     shouldRotate: boolean;
     caption: string;
