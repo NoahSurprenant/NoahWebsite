@@ -29,6 +29,12 @@
         </li>
     </ul>
 
+    @if (displayWatermark()) {
+    <div class="windows-watermark">
+        Activate Windows<br>
+        Go to Settings to activate Windows.
+    </div>
+    }
 </div>
 
 <router-outlet></router-outlet>
