@@ -289,15 +289,7 @@ void main() {
   // Camera
   private readonly BASE_CAM_Z = 80; // Base camera Z position for desktop
   
-  // Compute camera look-at position based on aspect ratio
-  // For portrait/narrow screens, shift the look-at point to better frame the model
-  public lookAtPosition = computed(() => {
-    const aspect = this.aspectRatio();
-    // On portrait screens, shift look-at to the left to center the model
-    // Models are positioned at X = -20, so we need to look more to the left on narrow screens
-    const xOffset = aspect < 1 ? -10 * (1 - aspect) : 0; // Up to -10 on very narrow screens
-    return new Vector3(xOffset, 0, 0);
-  });
+  public lookAtPosition: Vector3 = this.DEFAULT_LOCATION;
   
   // Compute camera position based on aspect ratio
   // For portrait/narrow screens (aspect < 1), pull camera back to fit the model
@@ -306,7 +298,7 @@ void main() {
     // On portrait screens (aspect < 1), increase Z distance
     // On landscape screens (aspect >= 1), use base distance
     const zDistance = aspect < 1 
-      ? this.BASE_CAM_Z * (1 + (1 - aspect) * 0.5) // Pull back by up to 50% on very narrow screens
+      ? this.BASE_CAM_Z * (1 + (1 - aspect) * 2)
       : this.BASE_CAM_Z;
     return new Vector3(0, 0, zDistance);
   });
