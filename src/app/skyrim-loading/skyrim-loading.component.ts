@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
+import { Component, computed, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { Clock, Euler, IcosahedronGeometry, IUniform, Mesh, ShaderMaterial, Vector2, Vector3 } from 'three';
 import { ASSET_PATH } from '../assets';
 import { FogComponent } from '../fog/fog.component';
@@ -31,6 +31,9 @@ export class SkyrimLoadingComponent implements OnInit, OnDestroy {
 
   scene = viewChild.required(ThScene);
 
+  // Responsive camera positioning
+  private aspectRatio = signal<number>(window.innerWidth / window.innerHeight);
+  
   constructor() {
     let initialIndex = this.GetRandomInt(0, this.positions.length - 1);
     this.OriginalPos = this.positions[initialIndex];
@@ -42,6 +45,12 @@ export class SkyrimLoadingComponent implements OnInit, OnDestroy {
   async ngOnInit(): Promise<void> {
     const gpuTier = await getGPUTier();
     this.renderFog.set(gpuTier.tier > 1);
+
+    // Set initial aspect ratio
+    this.updateAspectRatio();
+
+    // Add resize listener
+    window.addEventListener('resize', this.handleResize);
 
     this.uniform = {
       u_resolution: {value: new Vector2(window.innerWidth, window.innerHeight)},
@@ -196,6 +205,7 @@ void main() {
 
   ngOnDestroy(): void {
     window.clearInterval(this.intervalHandle);
+    window.removeEventListener('resize', this.handleResize);
   }
 
   renderFog = signal(false);
@@ -277,8 +287,32 @@ void main() {
   public itemScale: Vector3 = this.DEFAULT_SCALE;
 
   // Camera
+  private readonly BASE_CAM_Z = 80; // Base camera Z position for desktop
+  
   public lookAtPosition: Vector3 = this.DEFAULT_LOCATION;
-  public camPosition: Vector3 = new Vector3(0, 0, 80);
+  
+  // Compute camera position based on aspect ratio
+  // For portrait/narrow screens (aspect < 1), pull camera back to fit the model
+  public camPosition = computed(() => {
+    const aspect = this.aspectRatio();
+    // On portrait screens (aspect < 1), increase Z distance
+    // On landscape screens (aspect >= 1), use base distance
+    const zDistance = aspect < 1 
+      ? this.BASE_CAM_Z * (1 + (1 - aspect) * 2)
+      : this.BASE_CAM_Z;
+    return new Vector3(0, 0, zDistance);
+  });
+
+  private handleResize = () => {
+    this.updateAspectRatio();
+    if (this.uniform) {
+      this.uniform['u_resolution'].value = new Vector2(window.innerWidth, window.innerHeight);
+    }
+  };
+
+  private updateAspectRatio() {
+    this.aspectRatio.set(window.innerWidth / window.innerHeight);
+  }
 
   public onLoaded() {
     //console.log("on loaded" + this.itemIndex);
