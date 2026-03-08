@@ -16,9 +16,10 @@ import { ThScene } from '@noahsurprenant/ngx-three';
 // https://github.com/ashima/webgl-noise/blob/master/src/classicnoise3D.glsl
 
 @Component({
-  selector: 'app-skyrim-loading',
-  templateUrl: './skyrim-loading.component.html',
-  styleUrls: ['./skyrim-loading.component.css']
+    selector: 'app-skyrim-loading',
+    templateUrl: './skyrim-loading.component.html',
+    styleUrls: ['./skyrim-loading.component.css'],
+    standalone: false
 })
 export class SkyrimLoadingComponent implements OnInit, OnDestroy {
   private readonly DEFAULT_SCALE: Vector3 = new Vector3(1, 1, 1);

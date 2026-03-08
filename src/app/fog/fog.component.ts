@@ -5,9 +5,10 @@ import { Clock, Euler, MathUtils, Vector2, Vector3 } from 'three';
 import { ASSET_PATH } from '../assets';
 
 @Component({
-  selector: 'app-fog',
-  templateUrl: './fog.component.html',
-  styleUrls: ['./fog.component.css']
+    selector: 'app-fog',
+    templateUrl: './fog.component.html',
+    styleUrls: ['./fog.component.css'],
+    standalone: false
 })
 export class FogComponent {
   // Only for previewing the points
