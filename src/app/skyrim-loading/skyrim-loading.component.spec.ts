@@ -8,8 +8,8 @@ describe('SkyrimLoadingComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ SkyrimLoadingComponent ]
-    })
+    imports: [SkyrimLoadingComponent]
+})
     .compileComponents();
 
     fixture = TestBed.createComponent(SkyrimLoadingComponent);

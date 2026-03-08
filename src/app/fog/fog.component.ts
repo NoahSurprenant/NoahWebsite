@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { TextureLoaderService } from '@noahsurprenant/ngx-three';
+import { TextureLoaderService, ThMesh, ThPlaneGeometry, ThMeshBasicMaterial, ThBoxGeometry } from '@noahsurprenant/ngx-three';
 import * as THREE from 'three';
 import { Clock, Euler, MathUtils, Vector2, Vector3 } from 'three';
 import { ASSET_PATH } from '../assets';
@@ -8,7 +8,7 @@ import { ASSET_PATH } from '../assets';
     selector: 'app-fog',
     templateUrl: './fog.component.html',
     styleUrls: ['./fog.component.css'],
-    standalone: false
+    imports: [ThMesh, ThPlaneGeometry, ThMeshBasicMaterial, ThBoxGeometry]
 })
 export class FogComponent {
   // Only for previewing the points

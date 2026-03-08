@@ -4,7 +4,7 @@ import { ASSET_PATH } from '../assets';
 import { FogComponent } from '../fog/fog.component';
 import { Item } from '../item';
 import { getGPUTier } from 'detect-gpu';
-import { ThScene } from '@noahsurprenant/ngx-three';
+import { ThScene, ThCanvas, StatsDirective, ThDirectionalLight, ThObject3D, ThGLTFLoaderDirective, ThPerspectiveCamera, ColorPipe } from '@noahsurprenant/ngx-three';
 
 // References:
 // https://github.com/demike/ngx-three/
@@ -19,7 +19,7 @@ import { ThScene } from '@noahsurprenant/ngx-three';
     selector: 'app-skyrim-loading',
     templateUrl: './skyrim-loading.component.html',
     styleUrls: ['./skyrim-loading.component.css'],
-    standalone: false
+    imports: [ThCanvas, StatsDirective, ThScene, ThDirectionalLight, FogComponent, ThObject3D, ThGLTFLoaderDirective, ThPerspectiveCamera, ColorPipe]
 })
 export class SkyrimLoadingComponent implements OnInit, OnDestroy {
   private readonly DEFAULT_SCALE: Vector3 = new Vector3(1, 1, 1);
