@@ -25,10 +25,11 @@
     "@fortawesome/free-brands-svg-icons": "7.2.0",
     "@fortawesome/free-regular-svg-icons": "7.2.0",
     "@fortawesome/free-solid-svg-icons": "7.2.0",
-    "@types/three": "^0.165.0",
+    "@noahsurprenant/ngx-three": "^0.44.2",
+    "@types/three": "^0.182.0",
     "detect-gpu": "^5.0.53",
     "rxjs": "~7.8.0",
-    "three": "^0.165.0",
+    "three": "^0.182.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.1"
   },
