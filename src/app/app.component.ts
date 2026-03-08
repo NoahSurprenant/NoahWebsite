@@ -3,14 +3,13 @@ import { AnimationProp, FaIconComponent } from '@fortawesome/angular-fontawesome
 import { faGithub, faLinkedin } from '@fortawesome/free-brands-svg-icons';
 import { faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import { SkyrimLoadingComponent } from './skyrim-loading/skyrim-loading.component';
-import { RouterOutlet } from '@angular/router';
 
 @Component({
     selector: 'app-root',
     templateUrl: './app.component.html',
     styleUrls: ['./app.component.css'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [SkyrimLoadingComponent, FaIconComponent, RouterOutlet]
+    imports: [SkyrimLoadingComponent, FaIconComponent]
 })
 export class AppComponent implements OnInit, OnDestroy {
   title = 'Noah Surprenant';
