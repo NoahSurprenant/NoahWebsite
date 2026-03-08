@@ -27,6 +27,13 @@
                 </fa-icon>
             </a>
         </li>
+        
+        <li (mouseover)="filePdfAnim='beat'" (mouseleave)="filePdfAnim=undefined">
+            <a href="https://cdn.noahsurprenant.com/Noah%20Surprenant%20-%20Resume.pdf" target="_blank" rel="noopener noreferrer">
+                <fa-icon [icon]="faFilePdf" [animation]="filePdfAnim">
+                </fa-icon>
+            </a>
+        </li>
     </ul>
 
     @if (displayWatermark()) {
@@ -36,5 +43,3 @@
     </div>
     }
 </div>
-
-<router-outlet></router-outlet>

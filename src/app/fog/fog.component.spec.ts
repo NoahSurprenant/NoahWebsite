@@ -8,8 +8,8 @@ describe('FogComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ FogComponent ]
-    })
+    imports: [FogComponent]
+})
     .compileComponents();
 
     fixture = TestBed.createComponent(FogComponent);
