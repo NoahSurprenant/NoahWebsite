@@ -10,9 +10,13 @@ html, body, app-root, .app-frame {
     background-color: black;
 }
 
+/* Jost (SIL Open Font License, see assets/jost-OFL.txt), a free Futura revival, subset to Latin and
+   fixed at weight 600. The captions squeeze it horizontally to look like Skyrim's Futura Condensed. */
 @font-face {
-    font-family: 'futura';
-    src: url('assets/futura-condensed-pt-medium.woff2') format('woff2');
+    font-family: 'jost';
+    src: url('assets/jost-600.woff2') format('woff2');
+    font-weight: 600;
+    size-adjust: 96.2%;
     font-display: swap;
 }
 
