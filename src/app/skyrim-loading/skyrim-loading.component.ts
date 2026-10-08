@@ -456,9 +456,10 @@ void main() {
       const targetPos = this.TargetPos.clone();
 
       const direction = targetPos.clone().sub(currentPos).normalize();
-      
-      const moveAmt = new Vector3(direction.x * this.moveAmt * dt, direction.y * this.moveAmt * dt, direction.z * this.moveAmt * dt);
-      currentPos.add(moveAmt);
+
+      // Never step past the target, a long frame would otherwise overshoot it
+      const step = Math.min(this.moveAmt * dt, currentPos.distanceTo(targetPos));
+      currentPos.addScaledVector(direction, step);
 
       if (currentPos.distanceTo(targetPos) < 0.1) {
         //console.log("got to target");
