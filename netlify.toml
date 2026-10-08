@@ -2,3 +2,68 @@
 # Angular 22 needs Node ^22.22.3 || ^24.15.0; this overrides the UI's NODE_VERSION.
 [build.environment]
   NODE_VERSION = "24"
+
+# Headers. Netlify combines the values when several rules set the same header for a path, so each
+# header below is set by exactly one rule for any given file. HSTS is not set here: Netlify (and
+# Cloudflare in production) already send it.
+
+# Security headers on everything.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Report-only for now: Cloudflare sits in front of production and could inject scripts that a
+    # deploy preview can't show. Once production shows no "[Report Only]" console messages, rename
+    # the key to Content-Security-Policy to enforce it.
+    #   script-src 'wasm-unsafe-eval': three.js's meshopt decoder compiles WebAssembly.
+    #   style-src 'unsafe-inline': Angular adds component styles as <style> tags, and a static host
+    #     can't hand out per-response nonces. (Critical-CSS inlining is turned off in angular.json so
+    #     index.html has no inline script.)
+    #   img-src/connect-src blob:: GLTFLoader turns embedded textures into blob: URLs, loaded with
+    #     fetch() + createImageBitmap in Chromium and with <img> in Firefox/Safari.
+    #   frame-ancestors is ignored in report-only mode, so X-Frame-Options does that job for now.
+    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob:; connect-src 'self' blob:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+
+# index.html changes on every deploy and names the hashed bundles, so it must always revalidate.
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# The Angular build fingerprints these (outputHashing: all): a content change means a new filename,
+# so they can be cached forever. All of them sit at the top level of the publish dir or in media/.
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/media/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Copied as-is, so the names stay the same when the contents change (models, the cloud
+# texture, detect-gpu's benchmark JSON). Short cache, then revalidate with the ETag, so neither
+# browsers nor Cloudflare keep serving an old file for more than five minutes after a deploy.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=300, must-revalidate"
+
+[[headers]]
+  for = "/favicon.ico"
+  [headers.values]
+    Cache-Control = "public, max-age=300, must-revalidate"
