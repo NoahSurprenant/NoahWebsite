@@ -69,7 +69,7 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
     const gpuTier = await getGPUTier();
     if (this.destroyed) return;
     if (gpuTier.tier > 1) {
-      this.fog = new Fog();
+      this.fog = new Fog(this.reducedMotion.matches);
       this.scene.add(this.fog.object);
     }
 

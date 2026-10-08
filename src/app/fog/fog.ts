@@ -25,7 +25,9 @@ export class Fog {
   // Reusable geometry, shared by every smoke mesh. This allows us to have 1 planeGeometry instead of 1 per smokeData
   private readonly geometry: PlaneGeometry;
 
-  constructor() {
+  // spreadStart: start each puff partway through its rise instead of fading in from the bottom.
+  // Used for reduced motion, where the fog never moves and would otherwise stay invisible.
+  constructor(private readonly spreadStart = false) {
     // Determine the min and max possible spawn locations
     this.minX = Math.min.apply(null, this.points2D.map(i => i.x));
     this.maxX = Math.max.apply(null, this.points2D.map(i => i.x));
@@ -101,8 +103,9 @@ export class Fog {
 
         let mesh = new Mesh(this.geometry, material);
         mesh.position.copy(pos);
-        // Start each puff partway through its rise, so even a still frame (reduced motion) shows the fog
-        mesh.position.y = this.GetRandomFloat(originalHeight, maxHeight);
+        if (this.spreadStart) {
+          mesh.position.y = this.GetRandomFloat(originalHeight, maxHeight);
+        }
 
         let newZ = Math.random() * 360;
         mesh.rotation.z = newZ * Math.PI / 180
