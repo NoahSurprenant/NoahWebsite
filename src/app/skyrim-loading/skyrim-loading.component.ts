@@ -225,20 +225,31 @@ void main() {
   }
 
   private loadItem(item: Item) {
+    // Items without a model (the Perlin mesh) just clear the previous one
+    if (item.assetPath === undefined) {
+      this.removeModel();
+      this.onLoaded();
+      return;
+    }
     this.gltfLoader.load(item.assetPath, (gltf) => {
       // Ignore loads that finished after we moved on to another item
       if (this.destroyed || item !== this.item()) {
         disposeObject(gltf.scene);
         return;
       }
-      if (this.model) {
-        this.scene.remove(this.model);
-        disposeObject(this.model);
-      }
+      this.removeModel();
       this.model = gltf.scene;
       this.scene.add(this.model);
       this.onLoaded();
     });
+  }
+
+  private removeModel() {
+    if (this.model) {
+      this.scene.remove(this.model);
+      disposeObject(this.model);
+      this.model = undefined;
+    }
   }
 
   public toggle() {
@@ -335,12 +346,8 @@ void main() {
     },
     {
       perlin: true,
-      // I don't really have a file to load here, reusing dingus with query parameter to fool computer into loading
-      // even if dingus was already loaded
-      assetPath:`${ASSET_PATH}dingus.glb?foo=bar`,
       shouldRotate: false,
       caption:"Perlin Noise is a craft of subtle beauty, a technique that weaves smooth, flowing patterns. Created by Ken Perlin, it shapes textures and terrains with natural grace, free of harsh marks.",
-      scaleOnLoad: new Vector3(0, 0, 0),
       attribution: { short:"pnoise by Stefan Gustavson", long:'Original Perlin noise code by Stefan Gustavson are licensed under the MIT license', url:"https://github.com/stegu/webgl-noise"}
     },
   ];
