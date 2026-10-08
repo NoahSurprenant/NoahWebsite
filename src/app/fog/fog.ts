@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Group, MathUtils, Mesh, PlaneGeometry, TextureLoader, Vector2, Vector3 } from 'three';
+import { Group, MathUtils, Mesh, PlaneGeometry, Texture, TextureLoader, Vector2, Vector3 } from 'three';
 import { ASSET_PATH } from '../assets';
 
 export class Fog {
@@ -77,6 +77,10 @@ export class Fog {
   public smokeData: { mesh: Mesh; maxHeight: number; originalHeight: number; speed: number; material: THREE.MeshLambertMaterial }[] = [];
   readonly NUM_INSTANCES = 500;
   readonly SMOKE_SIZE = 200;
+  // Making all the puffs at once, and drawing each new material for the first time, is a long stall,
+  // so they're added a batch per frame instead: all of them within about a third of a second.
+  readonly BATCH_SIZE = 25;
+  private cloudTexture?: Texture;
 
   private GetRandomInt(min: number, max: number)
   {
@@ -89,34 +93,40 @@ export class Fog {
   }
 
   private initSmokeData() {
-    this.textureLoader.load(this.cloudPath, (cloudText) => {
-      for (let i = 0; i < this.NUM_INSTANCES; i++) {
-        let pos = this.getNewSpawnVector();
-        let originalHeight = pos.y;
-        let maxHeight = originalHeight + this.GetRandomInt(20, 60);
+    this.textureLoader.load(this.cloudPath, (cloudText) => this.cloudTexture = cloudText);
+  }
 
-        let speed = this.GetRandomFloat(0.05, 1);
+  private addSmoke(cloudText: Texture, count: number) {
+    for (let i = 0; i < count; i++) {
+      let pos = this.getNewSpawnVector();
+      let originalHeight = pos.y;
+      let maxHeight = originalHeight + this.GetRandomInt(20, 60);
 
-        let material = new THREE.MeshLambertMaterial();
-        material.map = cloudText;
-        material.transparent = true;
+      let speed = this.GetRandomFloat(0.05, 1);
 
-        let mesh = new Mesh(this.geometry, material);
-        mesh.position.copy(pos);
-        if (this.spreadStart) {
-          mesh.position.y = this.GetRandomFloat(originalHeight, maxHeight);
-        }
+      let material = new THREE.MeshLambertMaterial();
+      material.map = cloudText;
+      material.transparent = true;
 
-        let newZ = Math.random() * 360;
-        mesh.rotation.z = newZ * Math.PI / 180
-
-        this.object.add(mesh);
-        this.smokeData.push({mesh, maxHeight, originalHeight, speed, material});
+      let mesh = new Mesh(this.geometry, material);
+      mesh.position.copy(pos);
+      if (this.spreadStart) {
+        mesh.position.y = this.GetRandomFloat(originalHeight, maxHeight);
       }
-    });
+
+      let newZ = Math.random() * 360;
+      mesh.rotation.z = newZ * Math.PI / 180
+
+      this.object.add(mesh);
+      this.smokeData.push({mesh, maxHeight, originalHeight, speed, material});
+    }
   }
 
   public onBeforeRender(dt: number) {
+    const missing = this.NUM_INSTANCES - this.smokeData.length;
+    if (this.cloudTexture && missing > 0) {
+      this.addSmoke(this.cloudTexture, Math.min(missing, this.BATCH_SIZE));
+    }
 
     this.smokeData.forEach( (data) => {
       data.mesh.rotation.z += dt * 0.008;
