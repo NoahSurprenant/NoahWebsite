@@ -1,6 +1,12 @@
 <div class="mat-typography app-frame mat-app-background" fxLayout="column">
 
+    <!-- three.js is most of the bundle, so the scene is lazy: the name and links paint first.
+         "on immediate" starts fetching the chunk right after that first render. -->
+    @defer (on immediate) {
     <app-skyrim-loading></app-skyrim-loading>
+    } @placeholder {
+    <div class="scene-placeholder"></div>
+    }
 
     <ul class="list">
         <li class="name">
@@ -8,28 +14,28 @@
         </li>
 
         <li (mouseover)="linkedinAnim='beat'" (mouseleave)="linkedinAnim=undefined">
-            <a href="https://www.linkedin.com/in/noahsurprenant/" target="_blank" >
+            <a href="https://www.linkedin.com/in/noahsurprenant/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
                 <fa-icon [icon]="faLinkedin" [animation]="linkedinAnim" >
                 </fa-icon>
             </a>
         </li>
 
         <li (mouseover)="githubAnim='beat'" (mouseleave)="githubAnim=undefined" >
-            <a href="https://github.com/NoahSurprenant" target="_blank" >
+            <a href="https://github.com/NoahSurprenant" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
                 <fa-icon [icon]="faGithub" [animation]="githubAnim">
                 </fa-icon>
             </a>
         </li>
 
         <li (mouseover)="envelopeAnim='beat'" (mouseleave)="envelopeAnim=undefined" >
-            <a href="mailto:noah.surprenant@gmail.com" target="_blank" >
+            <a href="mailto:noah.surprenant@gmail.com" target="_blank" rel="noopener noreferrer" aria-label="Email">
                 <fa-icon [icon]="faEnvelope" [animation]="envelopeAnim">
                 </fa-icon>
             </a>
         </li>
         
         <li (mouseover)="filePdfAnim='beat'" (mouseleave)="filePdfAnim=undefined">
-            <a href="https://cdn.noahsurprenant.com/Noah%20Surprenant%20-%20Resume.pdf" target="_blank" rel="noopener noreferrer">
+            <a href="https://cdn.noahsurprenant.com/Noah%20Surprenant%20-%20Resume.pdf" target="_blank" rel="noopener noreferrer" aria-label="Resume (PDF)">
                 <fa-icon [icon]="faFilePdf" [animation]="filePdfAnim">
                 </fa-icon>
             </a>

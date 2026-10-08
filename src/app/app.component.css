@@ -78,3 +78,7 @@ fa-icon {
   z-index: 9999;
   white-space: pre-line;
 }
+/* Stands in for the scene's full-height canvas host until the deferred chunk loads */
+.scene-placeholder {
+  height: 100%;
+}
