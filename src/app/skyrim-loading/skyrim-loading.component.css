@@ -15,10 +15,15 @@
     position: absolute;
     bottom: 80px;
     right: 80px;
-    width: 45%;
+    /* Squeezed to 66% to look like Futura Condensed; the wider box keeps the visible width at 45% */
+    width: calc(45% / 0.66);
+    transform: scaleX(0.66);
+    transform-origin: right bottom;
     max-height: fit-content;
     margin: 0;
-    font-family: futura;
+    font-family: jost;
+    font-weight: 600;
+    line-height: 1.286;
     word-wrap: break-word;
     font-size: 42px;
     text-align: right;
@@ -29,10 +34,14 @@
     position: absolute;
     bottom: 2px;
     left: 2px;
-    width: 45%;
+    width: calc(45% / 0.66);
+    transform: scaleX(0.66);
+    transform-origin: left bottom;
     max-height: fit-content;
     margin: 0;
-    font-family: futura;
+    font-family: jost;
+    font-weight: 600;
+    line-height: 1.286;
     word-wrap: break-word;
     font-size: 22px;
     text-align: left;
