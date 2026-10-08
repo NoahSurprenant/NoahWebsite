@@ -65,6 +65,49 @@ fa-icon {
     }
 }
 
+/* Phones and short landscape screens: tighter to the corner, and every icon link gets
+   a 44px tap target */
+@media screen and (max-width: 600px),
+    screen and (max-height: 500px) {
+    ul {
+        top: 12px;
+        right: 16px;
+        margin: 0;
+        padding: 0;
+    }
+    li {
+        padding-inline: 4px;
+    }
+    a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+    }
+    fa-icon {
+        font-size: 2.25em;
+    }
+    .name {
+        font-size: 1.25em;
+        padding-inline-end: 8px;
+    }
+}
+
+/* Portrait phones: the name gets its own row above the icons instead of wrapping */
+@media screen and (max-width: 600px) and (max-aspect-ratio: 1/1) {
+    ul {
+        left: 16px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    .name {
+        flex-basis: 100%;
+        text-align: right;
+        font-size: 1.5em;
+    }
+}
+
 .windows-watermark {
   position: fixed;
   right: 32px;
