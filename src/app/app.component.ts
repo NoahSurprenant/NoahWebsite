@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, OnDestroy, OnInit, signal } from '@angular/core';
-import { AnimationProp, FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { faGithub, faLinkedin } from '@fortawesome/free-brands-svg-icons';
 import { faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import { faFilePdf } from '@fortawesome/free-regular-svg-icons';
@@ -19,10 +19,6 @@ export class AppComponent implements OnInit, OnDestroy {
   faEnvelope = faEnvelope;
   faFilePdf = faFilePdf;
 
-  public githubAnim?: AnimationProp = undefined;
-  public linkedinAnim?: AnimationProp = undefined;
-  public envelopeAnim?: AnimationProp = undefined;
-  public filePdfAnim?: AnimationProp = undefined;
 
   innerWidth = signal<number>(0);
   innerHeight = signal<number>(0);

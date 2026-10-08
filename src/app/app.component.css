@@ -125,3 +125,14 @@ fa-icon {
 .scene-placeholder {
   height: 100%;
 }
+
+/* Beat the icon under the pointer (or keyboard focus). Plain CSS rather than mouse events: the
+   browser tracks :hover itself, so the beat can't get stuck after a tap on a phone or when a link
+   opens a new tab. Devices without real hover (phones) skip it, as does reduced motion.
+   fa-beat is Font Awesome's own keyframes; the svg is rendered by fa-icon, hence ::ng-deep. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    li:hover ::ng-deep svg,
+    a:focus-visible ::ng-deep svg {
+        animation: fa-beat 1s ease-in-out infinite;
+    }
+}
