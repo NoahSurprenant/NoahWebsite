@@ -11,17 +11,17 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    # Report-only for now: Cloudflare sits in front of production and could inject scripts that a
-    # deploy preview can't show. Once production shows no "[Report Only]" console messages, rename
-    # the key to Content-Security-Policy to enforce it.
+    # Enforced after running report-only in production behind Cloudflare with zero violations. If a
+    # Cloudflare feature that injects scripts (Web Analytics, email obfuscation, Rocket Loader) is
+    # ever turned on, it will be blocked until its origin is added here.
     #   script-src 'wasm-unsafe-eval': three.js's meshopt decoder compiles WebAssembly.
     #   style-src 'unsafe-inline': Angular adds component styles as <style> tags, and a static host
     #     can't hand out per-response nonces. (Critical-CSS inlining is turned off in angular.json so
     #     index.html has no inline script.)
     #   img-src/connect-src blob:: GLTFLoader turns embedded textures into blob: URLs, loaded with
     #     fetch() + createImageBitmap in Chromium and with <img> in Firefox/Safari.
-    #   frame-ancestors is ignored in report-only mode, so X-Frame-Options does that job for now.
-    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob:; connect-src 'self' blob:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    #   frame-ancestors 'none' blocks framing; X-Frame-Options stays for browsers without CSP 2.
+    Content-Security-Policy ="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob:; connect-src 'self' blob:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
