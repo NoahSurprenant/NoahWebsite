@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BoxGeometry, Clock, Group, MathUtils, Mesh, MeshBasicMaterial, PlaneGeometry, TextureLoader, Vector2, Vector3 } from 'three';
+import { BoxGeometry, Group, MathUtils, Mesh, MeshBasicMaterial, PlaneGeometry, TextureLoader, Vector2, Vector3 } from 'three';
 import { ASSET_PATH } from '../assets';
 
 export class Fog {
@@ -85,8 +85,6 @@ export class Fog {
     return is_in;
   }
 
-  public readonly clock = new Clock(true);
-
   // Smoke/fog
   public cloudPath = `${ASSET_PATH}clouds.png`;
   public smokeData: { mesh: Mesh; maxHeight: number; originalHeight: number; speed: number; material: THREE.MeshLambertMaterial }[] = [];
@@ -128,9 +126,7 @@ export class Fog {
     });
   }
 
-  public onBeforeRender() {
-
-    const dt = this.clock.getDelta();
+  public onBeforeRender(dt: number) {
 
     this.smokeData.forEach( (data) => {
       data.mesh.rotation.z += dt * 0.008;

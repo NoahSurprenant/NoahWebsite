@@ -1,0 +1,4 @@
+# Build command and publish directory are set in the Netlify UI.
+# Angular 22 needs Node ^22.22.3 || ^24.15.0; this overrides the UI's NODE_VERSION.
+[build.environment]
+  NODE_VERSION = "24"

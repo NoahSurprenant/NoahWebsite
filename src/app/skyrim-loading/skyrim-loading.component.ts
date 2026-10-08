@@ -1,5 +1,5 @@
-import { AfterViewInit, Component, computed, effect, ElementRef, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
-import { Clock, DirectionalLight, Euler, IcosahedronGeometry, IUniform, Mesh, Object3D, PerspectiveCamera, Scene, ShaderMaterial, Texture, Vector2, Vector3, WebGLRenderer } from 'three';
+import { AfterViewInit, Component, computed, effect, ElementRef, OnDestroy, OnInit, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
+import { DirectionalLight, Euler, IcosahedronGeometry, IUniform, Mesh, Object3D, PerspectiveCamera, Scene, ShaderMaterial, Texture, Timer, Vector2, Vector3, WebGLRenderer } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { ASSET_PATH } from '../assets';
 import { Fog } from '../fog/fog';
@@ -15,6 +15,7 @@ import { getGPUTier } from 'detect-gpu';
 @Component({
     selector: 'app-skyrim-loading',
     templateUrl: './skyrim-loading.component.html',
+    changeDetection: ChangeDetectionStrategy.OnPush,
     styleUrls: ['./skyrim-loading.component.css'],
 })
 export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -199,6 +200,8 @@ void main() {
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
 
+    // Pause the timer while the tab is hidden so the model doesn't jump when we come back
+    this.timer.connect(document);
     this.requestFrame();
   }
 
@@ -277,11 +280,12 @@ void main() {
     this.destroyed = true;
     if (this.frameId !== undefined) cancelAnimationFrame(this.frameId);
     this.resizeObserver?.disconnect();
+    this.timer.dispose();
     disposeObject(this.scene);
     this.renderer?.dispose();
   }
 
-  public readonly clock = new Clock(true);
+  public readonly timer = new Timer();
 
   public itemIndex = signal(-1);
   public item = computed(() => this.items[this.itemIndex()]);
@@ -416,15 +420,16 @@ void main() {
   //private n: number = 0;
 
   public onBeforeRender() {
-    const dt = this.clock.getDelta();
+    this.timer.update();
+    const dt = this.timer.getDelta();
 
     if (this.item().perlin) {
       if (this.uniform != null)
-        this.uniform['u_time'].value = this.clock.getElapsedTime();
+        this.uniform['u_time'].value = this.timer.getElapsed();
   
       if (this.mesh != null) {
-        this.mesh.rotation.x = this.clock.getElapsedTime() * 0.1;
-        this.mesh.rotation.z = this.clock.getElapsedTime() * 0.1;
+        this.mesh.rotation.x = this.timer.getElapsed() * 0.1;
+        this.mesh.rotation.z = this.timer.getElapsed() * 0.1;
         this.mesh.scale.set(1, 1, 1);
       }
     } else {
@@ -433,12 +438,12 @@ void main() {
     }
     
 
-    this.fog?.onBeforeRender();
+    this.fog?.onBeforeRender(dt);
 
-    // if (this.clock.elapsedTime > this.n + 5) {
+    // if (this.timer.getElapsed() > this.n + 5) {
     //   console.log("current pos before render");
     //   console.log(this.itemPos);
-    //   this.n = this.clock.elapsedTime
+    //   this.n = this.timer.getElapsed()
     // }
     
     // Slowly rotate
@@ -451,9 +456,10 @@ void main() {
       const targetPos = this.TargetPos.clone();
 
       const direction = targetPos.clone().sub(currentPos).normalize();
-      
-      const moveAmt = new Vector3(direction.x * this.moveAmt * dt, direction.y * this.moveAmt * dt, direction.z * this.moveAmt * dt);
-      currentPos.add(moveAmt);
+
+      // Never step past the target, a long frame would otherwise overshoot it
+      const step = Math.min(this.moveAmt * dt, currentPos.distanceTo(targetPos));
+      currentPos.addScaledVector(direction, step);
 
       if (currentPos.distanceTo(targetPos) < 0.1) {
         //console.log("got to target");

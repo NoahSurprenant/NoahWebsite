@@ -7,7 +7,7 @@ export interface Item {
     caption: string;
     rotationOnLoad?: Euler;
     scaleOnLoad?: Vector3;
-    attribution?: Attribution;
+    attribution: Attribution;
 }
 
 export interface Attribution {
