@@ -12,29 +12,20 @@ html, body, app-root, .app-frame {
 
 @font-face {
     font-family: 'futura-oblique';
-    src: url('assets/futura-condensed-pt-medium-oblique.otf') format('embedded-opentype'),
-         url('assets/futura-condensed-pt-medium-oblique.otf') format('woff2'), 
-         url('assets/futura-condensed-pt-medium-oblique.otf') format('woff'), 
-         url('assets/futura-condensed-pt-medium-oblique.otf') format('truetype'),
-         url('assets/futura-condensed-pt-medium-oblique.otf') format('svg');
+    src: url('assets/futura-condensed-pt-medium-oblique.woff2') format('woff2');
+    font-display: swap;
 }
 
 @font-face {
     font-family: 'futura';
-    src: url('assets/futura-condensed-pt-medium.otf') format('embedded-opentype'),
-         url('assets/futura-condensed-pt-medium.otf') format('woff2'), 
-         url('assets/futura-condensed-pt-medium.otf') format('woff'), 
-         url('assets/futura-condensed-pt-medium.otf') format('truetype'),
-         url('assets/futura-condensed-pt-medium.otf') format('svg');
+    src: url('assets/futura-condensed-pt-medium.woff2') format('woff2');
+    font-display: swap;
 }
 
 @font-face {
     font-family: 'futura-light';
-    src: url('assets/futura-light.otf') format('embedded-opentype'),
-         url('assets/futura-light.otf') format('woff2'), 
-         url('assets/futura-light.otf') format('woff'), 
-         url('assets/futura-light.otf') format('truetype'),
-         url('assets/futura-light.otf') format('svg');
+    src: url('assets/futura-light.woff2') format('woff2');
+    font-display: swap;
 }
 
 /* Remove all default link styling */
