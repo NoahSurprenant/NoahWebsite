@@ -4,6 +4,9 @@
     "config:recommended",
     ":enableVulnerabilityAlerts"
   ],
+  "schedule": [
+    "* 0-5 1 * *"
+  ],
   "packageRules": [
     {
       "description": "Everything goes into one PR, majors included",
