@@ -1,13 +1,10 @@
 import * as THREE from 'three';
-import { BoxGeometry, Group, MathUtils, Mesh, MeshBasicMaterial, PlaneGeometry, TextureLoader, Vector2, Vector3 } from 'three';
+import { Group, MathUtils, Mesh, PlaneGeometry, TextureLoader, Vector2, Vector3 } from 'three';
 import { ASSET_PATH } from '../assets';
 
 export class Fog {
   // Everything the fog draws, add this to the scene
   public readonly object = new Group();
-
-  // Only for previewing the points
-  public points: Vector3[] = [];
 
   public points2D: Vector2[] = [
     new Vector2(-130, -80), // top left
@@ -29,12 +26,6 @@ export class Fog {
   private readonly geometry: PlaneGeometry;
 
   constructor() {
-    // Push points into 3d array, so I have preview of locations,
-    this.points2D.forEach(p => {
-      let point3D = new Vector3(p.x, p.y, -50);
-      this.points.push(point3D);
-    });
-
     // Determine the min and max possible spawn locations
     this.minX = Math.min.apply(null, this.points2D.map(i => i.x));
     this.maxX = Math.max.apply(null, this.points2D.map(i => i.x));
@@ -42,12 +33,6 @@ export class Fog {
     this.maxY = Math.max.apply(null, this.points2D.map(i => i.y));
 
     this.geometry = new PlaneGeometry(this.SMOKE_SIZE, this.SMOKE_SIZE);
-
-    this.points.forEach(p => {
-      let box = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
-      box.position.copy(p);
-      this.object.add(box);
-    });
 
     this.initSmokeData();
   }
@@ -116,6 +101,8 @@ export class Fog {
 
         let mesh = new Mesh(this.geometry, material);
         mesh.position.copy(pos);
+        // Start each puff partway through its rise, so even a still frame (reduced motion) shows the fog
+        mesh.position.y = this.GetRandomFloat(originalHeight, maxHeight);
 
         let newZ = Math.random() * 360;
         mesh.rotation.z = newZ * Math.PI / 180

@@ -39,6 +39,10 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
   private fog?: Fog;
   private destroyed = false;
 
+  // Honour the OS "reduce motion" setting: keep the scene, but hold it still.
+  // `matches` is live, so checking it every frame also picks up changes while the page is open.
+  private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
   // Responsive camera positioning
   private aspectRatio = signal<number>(window.innerWidth / window.innerHeight);
 
@@ -242,7 +246,6 @@ void main() {
   public toggle() {
     window.clearInterval(this.intervalHandle);
     this.itemIndex.set(this.getNewItemIndex());
-    //console.log("toggle called new index is " + this.itemIndex);
   }
 
   private GetRandomInt(min: number, max: number)
@@ -390,7 +393,6 @@ void main() {
   }
 
   public onLoaded() {
-    //console.log("on loaded" + this.itemIndex);
     let currentItem = this.item();
 
     // If the newely loaded item specifies a rotation we'll use it, I thinks te cat likes to face the audience
@@ -412,24 +414,26 @@ void main() {
     }
     
     this.TargetPos = this.getNewTarget();
-    //console.log("new target:");
-    //console.log(this.TargetPos);
     this.moving = true;
   }
 
-  //private n: number = 0;
+  // Seconds of animation so far, only advances while motion is allowed
+  private motionTime = 0;
 
   public onBeforeRender() {
     this.timer.update();
-    const dt = this.timer.getDelta();
+    // With reduced motion nothing drifts, spins or wobbles, so animation time stands still
+    const reduceMotion = this.reducedMotion.matches;
+    const dt = reduceMotion ? 0 : this.timer.getDelta();
+    this.motionTime += dt;
 
     if (this.item().perlin) {
       if (this.uniform != null)
-        this.uniform['u_time'].value = this.timer.getElapsed();
+        this.uniform['u_time'].value = this.motionTime;
   
       if (this.mesh != null) {
-        this.mesh.rotation.x = this.timer.getElapsed() * 0.1;
-        this.mesh.rotation.z = this.timer.getElapsed() * 0.1;
+        this.mesh.rotation.x = this.motionTime * 0.1;
+        this.mesh.rotation.z = this.motionTime * 0.1;
         this.mesh.scale.set(1, 1, 1);
       }
     } else {
@@ -440,12 +444,6 @@ void main() {
 
     this.fog?.onBeforeRender(dt);
 
-    // if (this.timer.getElapsed() > this.n + 5) {
-    //   console.log("current pos before render");
-    //   console.log(this.itemPos);
-    //   this.n = this.timer.getElapsed()
-    // }
-    
     // Slowly rotate
     if (this.shouldRotate) {
       this.itemRot = new Euler(this.itemRot.x, this.itemRot.y + this.rotateAmt * dt, this.itemRot.z);
@@ -457,12 +455,13 @@ void main() {
 
       const direction = targetPos.clone().sub(currentPos).normalize();
 
-      // Never step past the target, a long frame would otherwise overshoot it
-      const step = Math.min(this.moveAmt * dt, currentPos.distanceTo(targetPos));
+      // Never step past the target, a long frame would otherwise overshoot it.
+      // With reduced motion, skip the glide and appear at the target straight away.
+      const maxStep = reduceMotion ? Infinity : this.moveAmt * dt;
+      const step = Math.min(maxStep, currentPos.distanceTo(targetPos));
       currentPos.addScaledVector(direction, step);
 
       if (currentPos.distanceTo(targetPos) < 0.1) {
-        //console.log("got to target");
         currentPos = targetPos;
         this.moving = false;
         let millis = this.GetRandomInt(this.MIN_MS, this.MAX_MS);
@@ -491,15 +490,4 @@ function disposeObject(object: Object3D) {
       });
     }
   });
-}
-
-export interface Uniforms {
-  u_resolution: {
-    type: string,
-    value: Vector2,
-  },
-  u_time: {
-    type: string,
-    value: number,
-  },
 }
