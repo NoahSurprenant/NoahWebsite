@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, computed, effect, ElementRef, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
+import { AfterViewInit, Component, computed, effect, ElementRef, OnDestroy, OnInit, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { Clock, DirectionalLight, Euler, IcosahedronGeometry, IUniform, Mesh, Object3D, PerspectiveCamera, Scene, ShaderMaterial, Texture, Vector2, Vector3, WebGLRenderer } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { ASSET_PATH } from '../assets';
@@ -15,6 +15,7 @@ import { getGPUTier } from 'detect-gpu';
 @Component({
     selector: 'app-skyrim-loading',
     templateUrl: './skyrim-loading.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrls: ['./skyrim-loading.component.css'],
 })
 export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy {
