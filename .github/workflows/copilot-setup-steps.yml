@@ -35,8 +35,9 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
 
+      # Global `ng` for the agent, pinned to the project's locked version so it never drifts.
       - name: Install Angular CLI
-        run: npm install -g @angular/cli
+        run: npm install -g "@angular/cli@$(node -p "require('./package-lock.json').packages['node_modules/@angular/cli'].version")"
 
       - name: Install JavaScript dependencies
-        run: npm ci --force
+        run: npm ci
