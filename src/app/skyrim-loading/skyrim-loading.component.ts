@@ -1,6 +1,7 @@
 import { AfterViewInit, Component, computed, effect, ElementRef, OnDestroy, OnInit, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { DirectionalLight, Euler, IcosahedronGeometry, IUniform, Mesh, Object3D, PerspectiveCamera, Scene, ShaderMaterial, Texture, Timer, Vector2, Vector3, WebGLRenderer } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ASSET_PATH } from '../assets';
 import { Fog } from '../fog/fog';
 import { Item } from '../item';
@@ -53,6 +54,7 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
     light.position.set(1, 1, 1);
     this.scene.add(light);
     this.scene.add(this.camera);
+    this.gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 
     effect(() => {
       this.camera.position.copy(this.camPosition());
