@@ -1,5 +1,9 @@
 /* You can add global styles to this file, and also import other style files */
 
+/* Roboto, self-hosted from the pinned @fontsource/roboto package: only the Latin subset of weight 400,
+   the only weight the page uses. The build copies the file into media/ with a content hash. */
+@import "@fontsource/roboto/latin-400.css";
+
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
 html, body, app-root, .app-frame {
@@ -8,6 +12,12 @@ html, body, app-root, .app-frame {
     height: 100%;
     box-sizing: border-box;
     background-color: black;
+}
+
+/* What Angular Material's mat-app-background used to give the page: white text. Its #303030 background
+   was always overridden by the black above, and mat-typography emitted no rules in this theme. */
+.app-frame {
+    color: white;
 }
 
 /* Jost (SIL Open Font License, see assets/jost-OFL.txt), a free Futura revival, subset to Latin and

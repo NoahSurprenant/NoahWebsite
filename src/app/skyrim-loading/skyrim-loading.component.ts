@@ -68,7 +68,7 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   async ngOnInit(): Promise<void> {
-    const gpuTier = await getGPUTier();
+    const gpuTier = await getGPUTier({ benchmarksURL: `${ASSET_PATH}detect-gpu` });
     if (this.destroyed) return;
     if (gpuTier.tier > 1) {
       this.fog = new Fog(this.reducedMotion.matches);
