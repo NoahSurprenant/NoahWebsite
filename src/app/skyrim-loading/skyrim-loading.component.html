@@ -2,14 +2,14 @@
 
 <p class="caption" [textContent]="item().caption">You got a cat</p>
 
-@if (item().attribution?.url == undefined) {
+@if (item().attribution.url == undefined) {
     <div>
-        <p class="attribution" [textContent]="$safeNavigationMigration(item().attribution?.short)" [title]="$safeNavigationMigration(item().attribution?.long)"></p>
+        <p class="attribution" [textContent]="item().attribution.short" [title]="item().attribution.long"></p>
     </div>
 } @else {
     <div>
-        <a [href]="$safeNavigationMigration(item().attribution?.url)" target="_blank">
-            <p class="attribution" [textContent]="$safeNavigationMigration(item().attribution?.short)" [title]="$safeNavigationMigration(item().attribution?.long)"></p>
+        <a [href]="item().attribution.url" target="_blank">
+            <p class="attribution" [textContent]="item().attribution.short" [title]="item().attribution.long"></p>
         </a>
     </div>
 }

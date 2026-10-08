@@ -15,7 +15,7 @@ import { getGPUTier } from 'detect-gpu';
 @Component({
     selector: 'app-skyrim-loading',
     templateUrl: './skyrim-loading.component.html',
-    changeDetection: ChangeDetectionStrategy.Eager,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     styleUrls: ['./skyrim-loading.component.css'],
 })
 export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy {
