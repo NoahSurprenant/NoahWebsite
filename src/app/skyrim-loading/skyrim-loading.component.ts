@@ -22,7 +22,6 @@ import { getGPUTier } from 'detect-gpu';
 export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly DEFAULT_SCALE: Vector3 = new Vector3(1, 1, 1);
   private readonly DEFAULT_ROTATION: Euler = new Euler(0, 0, 0);
-  private readonly DEFAULT_LOCATION: Vector3 = new Vector3(0, 0, 0);
 
   private intervalHandle?: number;
   private uniform?: { [uniform: string]: IUniform };
@@ -39,6 +38,8 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
   private model?: Object3D;
   private fog?: Fog;
   private destroyed = false;
+  // Fires when devicePixelRatio changes, e.g. the window moves to a monitor with different scaling
+  private dprQuery?: MediaQueryList;
 
   // Honour the OS "reduce motion" setting: keep the scene, but hold it still.
   // `matches` is live, so checking it every frame also picks up changes while the page is open.
@@ -62,7 +63,7 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
 
     effect(() => {
       this.camera.position.copy(this.camPosition());
-      this.camera.lookAt(this.lookAtPosition);
+      this.camera.lookAt(this.lookAtPosition());
     });
     effect(() => this.loadItem(this.item()));
   }
@@ -85,6 +86,8 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
       u_resolution: {value: new Vector2(window.innerWidth, window.innerHeight)},
       u_time: {value: 0.0},
     };
+    // The fog lowers the pixel ratio cap, and u_resolution needs the drawing buffer size
+    this.resize();
     const mat = new ShaderMaterial({
       uniforms: this.uniform,
       vertexShader: `
@@ -199,8 +202,15 @@ void main() {
 
   ngAfterViewInit(): void {
     const host = this.canvasHost().nativeElement;
-    this.renderer = new WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+    try {
+      this.renderer = new WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+    } catch (e) {
+      // No WebGL (disabled, blocklisted GPU, lost context): skip the scene, the text and links still work
+      console.warn('3D scene disabled, WebGL is unavailable', e);
+      return;
+    }
     host.appendChild(this.renderer.domElement);
+    this.watchPixelRatio();
 
     this.resize();
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -215,10 +225,26 @@ void main() {
     const host = this.canvasHost().nativeElement;
     const width = host.clientWidth;
     const height = host.clientHeight;
-    this.renderer?.setSize(width, height, false);
+    if (this.renderer) {
+      // Render at the screen's real resolution so phones and HiDPI screens aren't blurry. Capped
+      // because fill cost grows with the square of the ratio: 2 when the scene is light, 1.5 with
+      // the fog, whose 500 overlapping transparent planes are fill-bound and soft anyway.
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.fog ? 1.5 : 2));
+      this.renderer.setSize(width, height, false);
+      // The Perlin shader divides gl_FragCoord, which is in drawing buffer pixels
+      this.renderer.getDrawingBufferSize(this.uniform?.['u_resolution'].value ?? new Vector2());
+    }
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
   }
+
+  private watchPixelRatio = () => {
+    this.dprQuery?.removeEventListener('change', this.watchPixelRatio);
+    if (this.destroyed) return;
+    this.resize();
+    this.dprQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+    this.dprQuery.addEventListener('change', this.watchPixelRatio);
+  };
 
   private requestFrame() {
     this.frameId = requestAnimationFrame(() => {
@@ -293,6 +319,7 @@ void main() {
   ngOnDestroy(): void {
     window.clearInterval(this.intervalHandle);
     window.removeEventListener('resize', this.handleResize);
+    this.dprQuery?.removeEventListener('change', this.watchPixelRatio);
     this.destroyed = true;
     if (this.frameId !== undefined) cancelAnimationFrame(this.frameId);
     this.resizeObserver?.disconnect();
@@ -375,27 +402,39 @@ void main() {
 
   // Camera
   private readonly BASE_CAM_Z = 80; // Base camera Z position for desktop
-  
-  public lookAtPosition: Vector3 = this.DEFAULT_LOCATION;
-  
-  // Compute camera position based on aspect ratio
-  // For portrait/narrow screens (aspect < 1), pull camera back to fit the model
-  public camPosition = computed(() => {
-    const aspect = this.aspectRatio();
-    // On portrait screens (aspect < 1), increase Z distance
-    // On landscape screens (aspect >= 1), use base distance
-    const zDistance = aspect < 1 
-      ? this.BASE_CAM_Z * (1 + (1 - aspect) * 2)
-      : this.BASE_CAM_Z;
-    return new Vector3(0, 0, zDistance);
+  // Half the camera's vertical field of view, PerspectiveCamera defaults to 50 degrees
+  private readonly TAN_HALF_FOV = Math.tan(25 * Math.PI / 180);
+  // The models all spawn at x = -20 and z = 15..30; the widest (the cart) is ~28 units across.
+  // Keeping 22 units either side of it leaves room for the caption on tablets
+  private readonly MODEL_X = -20;
+  private readonly MODEL_Z = 30;
+  private readonly MODEL_HALF_WIDTH = 22;
+
+  // How far to pan towards the models: 0 on landscape screens, where they sit left of the caption,
+  // up to 1 on portrait ones, which are too narrow to show x = -20 without shrinking the model.
+  // The Perlin sphere sits at the origin, so it is never panned.
+  private readonly pan = computed(() => {
+    if (this.item()?.perlin) return 0;
+    return Math.min(Math.max((1.2 - this.aspectRatio()) / 0.5, 0), 1);
   });
 
-  private handleResize = () => {
-    this.updateAspectRatio();
-    if (this.uniform) {
-      this.uniform['u_resolution'].value = new Vector2(window.innerWidth, window.innerHeight);
+  // Pan down a little too, so the models sit between the name at the top and the caption below
+  public lookAtPosition = computed(() => new Vector3(this.MODEL_X * this.pan(), -5 * this.pan(), 0));
+
+  public camPosition = computed(() => {
+    const aspect = this.aspectRatio();
+    const lookAt = this.lookAtPosition();
+    if (this.item()?.perlin) {
+      // The sphere fills the screen; on portrait screens pull back so it still reads as a sphere
+      const z = aspect < 1 ? this.BASE_CAM_Z * (1 + (1 - aspect) * 2) : this.BASE_CAM_Z;
+      return new Vector3(0, 0, z);
     }
-  };
+    // On narrow screens back off just enough that a whole model fits across the width
+    const distance = Math.max(this.BASE_CAM_Z - this.MODEL_Z, this.MODEL_HALF_WIDTH / (this.TAN_HALF_FOV * aspect));
+    return new Vector3(lookAt.x, lookAt.y, this.MODEL_Z + distance);
+  });
+
+  private handleResize = () => this.updateAspectRatio();
 
   private updateAspectRatio() {
     this.aspectRatio.set(window.innerWidth / window.innerHeight);
