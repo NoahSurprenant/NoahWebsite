@@ -1,13 +1,10 @@
-import { Component, computed, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
-import { Clock, Euler, IcosahedronGeometry, IUniform, Mesh, ShaderMaterial, Vector2, Vector3 } from 'three';
+import { AfterViewInit, Component, computed, effect, ElementRef, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
+import { Clock, DirectionalLight, Euler, IcosahedronGeometry, IUniform, Mesh, Object3D, PerspectiveCamera, Scene, ShaderMaterial, Texture, Vector2, Vector3, WebGLRenderer } from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { ASSET_PATH } from '../assets';
-import { FogComponent } from '../fog/fog.component';
+import { Fog } from '../fog/fog';
 import { Item } from '../item';
 import { getGPUTier } from 'detect-gpu';
-import { ThScene, ThCanvas, StatsDirective, ThDirectionalLight, ThObject3D, ThGLTFLoaderDirective, ThPerspectiveCamera, ColorPipe } from '@noahsurprenant/ngx-three';
-
-// References:
-// https://github.com/demike/ngx-three/
 
 // Example of smoke with three.js
 // https://codepen.io/sbrl/pen/zNdqdd?editors=0110
@@ -19,9 +16,8 @@ import { ThScene, ThCanvas, StatsDirective, ThDirectionalLight, ThObject3D, ThGL
     selector: 'app-skyrim-loading',
     templateUrl: './skyrim-loading.component.html',
     styleUrls: ['./skyrim-loading.component.css'],
-    imports: [ThCanvas, StatsDirective, ThScene, ThDirectionalLight, FogComponent, ThObject3D, ThGLTFLoaderDirective, ThPerspectiveCamera, ColorPipe]
 })
-export class SkyrimLoadingComponent implements OnInit, OnDestroy {
+export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly DEFAULT_SCALE: Vector3 = new Vector3(1, 1, 1);
   private readonly DEFAULT_ROTATION: Euler = new Euler(0, 0, 0);
   private readonly DEFAULT_LOCATION: Vector3 = new Vector3(0, 0, 0);
@@ -30,22 +26,47 @@ export class SkyrimLoadingComponent implements OnInit, OnDestroy {
   private uniform?: { [uniform: string]: IUniform };
   private mesh?: Mesh;
 
-  scene = viewChild.required(ThScene);
+  // Three.js plumbing
+  private canvasHost = viewChild.required<ElementRef<HTMLDivElement>>('canvasHost');
+  private renderer?: WebGLRenderer;
+  private resizeObserver?: ResizeObserver;
+  private frameId?: number;
+  private readonly scene = new Scene();
+  private readonly camera = new PerspectiveCamera();
+  private readonly gltfLoader = new GLTFLoader();
+  private model?: Object3D;
+  private fog?: Fog;
+  private destroyed = false;
 
   // Responsive camera positioning
   private aspectRatio = signal<number>(window.innerWidth / window.innerHeight);
-  
+
   constructor() {
     let initialIndex = this.GetRandomInt(0, this.positions.length - 1);
     this.OriginalPos = this.positions[initialIndex];
     this.itemPos = this.OriginalPos;
 
-    this.itemIndex = this.getNewItemIndex();
+    this.itemIndex.set(this.getNewItemIndex());
+
+    const light = new DirectionalLight(0xffffff, 1);
+    light.position.set(1, 1, 1);
+    this.scene.add(light);
+    this.scene.add(this.camera);
+
+    effect(() => {
+      this.camera.position.copy(this.camPosition());
+      this.camera.lookAt(this.lookAtPosition);
+    });
+    effect(() => this.loadItem(this.item()));
   }
 
   async ngOnInit(): Promise<void> {
     const gpuTier = await getGPUTier();
-    this.renderFog.set(gpuTier.tier > 1);
+    if (this.destroyed) return;
+    if (gpuTier.tier > 1) {
+      this.fog = new Fog();
+      this.scene.add(this.fog.object);
+    }
 
     // Set initial aspect ratio
     this.updateAspectRatio();
@@ -166,12 +187,58 @@ void main() {
       mat.wireframe = true;
     const geometry = new IcosahedronGeometry(25, 18);
     this.mesh = new Mesh(geometry, mat);
-    this.scene().objRef?.add(this.mesh);
+    this.scene.add(this.mesh);
+  }
+
+  ngAfterViewInit(): void {
+    const host = this.canvasHost().nativeElement;
+    this.renderer = new WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+    host.appendChild(this.renderer.domElement);
+
+    this.resize();
+    this.resizeObserver = new ResizeObserver(() => this.resize());
+    this.resizeObserver.observe(host);
+
+    this.requestFrame();
+  }
+
+  private resize() {
+    const host = this.canvasHost().nativeElement;
+    const width = host.clientWidth;
+    const height = host.clientHeight;
+    this.renderer?.setSize(width, height, false);
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+  }
+
+  private requestFrame() {
+    this.frameId = requestAnimationFrame(() => {
+      this.onBeforeRender();
+      this.renderer?.render(this.scene, this.camera);
+      this.requestFrame();
+    });
+  }
+
+  private loadItem(item: Item) {
+    this.gltfLoader.load(item.assetPath, (gltf) => {
+      // Ignore loads that finished after we moved on to another item
+      if (this.destroyed || item !== this.item()) {
+        disposeObject(gltf.scene);
+        return;
+      }
+      if (this.model) {
+        this.scene.remove(this.model);
+        disposeObject(this.model);
+      }
+      this.model = gltf.scene;
+      this.scene.add(this.model);
+      this.onLoaded();
+    });
   }
 
   public toggle() {
     window.clearInterval(this.intervalHandle);
-    this.itemIndex = this.getNewItemIndex();
+    this.itemIndex.set(this.getNewItemIndex());
     //console.log("toggle called new index is " + this.itemIndex);
   }
 
@@ -192,7 +259,7 @@ void main() {
   private getNewItemIndex() {
     while (true) {
       let index = this.GetRandomInt(0, this.items.length - 1);
-      if (index !== this.itemIndex) {
+      if (index !== this.itemIndex()) {
         return index;
       }
     }
@@ -207,14 +274,17 @@ void main() {
   ngOnDestroy(): void {
     window.clearInterval(this.intervalHandle);
     window.removeEventListener('resize', this.handleResize);
+    this.destroyed = true;
+    if (this.frameId !== undefined) cancelAnimationFrame(this.frameId);
+    this.resizeObserver?.disconnect();
+    disposeObject(this.scene);
+    this.renderer?.dispose();
   }
-
-  renderFog = signal(false);
-  fogComp = viewChild<FogComponent>('fogComp');
 
   public readonly clock = new Clock(true);
 
-  public itemIndex: number = -1;
+  public itemIndex = signal(-1);
+  public item = computed(() => this.items[this.itemIndex()]);
   public items: Item[] =
   [
     {
@@ -317,7 +387,7 @@ void main() {
 
   public onLoaded() {
     //console.log("on loaded" + this.itemIndex);
-    let currentItem = this.items[this.itemIndex];
+    let currentItem = this.item();
 
     // If the newely loaded item specifies a rotation we'll use it, I thinks te cat likes to face the audience
     if (currentItem.rotationOnLoad !== undefined) {
@@ -348,7 +418,7 @@ void main() {
   public onBeforeRender() {
     const dt = this.clock.getDelta();
 
-    if (this.items[this.itemIndex].perlin) {
+    if (this.item().perlin) {
       if (this.uniform != null)
         this.uniform['u_time'].value = this.clock.getElapsedTime();
   
@@ -363,8 +433,7 @@ void main() {
     }
     
 
-    if (this.renderFog())
-      this.fogComp()?.onBeforeRender();
+    this.fog?.onBeforeRender();
 
     // if (this.clock.elapsedTime > this.n + 5) {
     //   console.log("current pos before render");
@@ -397,7 +466,25 @@ void main() {
       this.itemPos = currentPos;
     }
 
+    if (this.model) {
+      this.model.position.copy(this.itemPos);
+      this.model.rotation.copy(this.itemRot);
+      this.model.scale.copy(this.itemScale);
+    }
   }
+}
+
+function disposeObject(object: Object3D) {
+  object.traverse(o => {
+    if (o instanceof Mesh) {
+      o.geometry.dispose();
+      const materials = Array.isArray(o.material) ? o.material : [o.material];
+      materials.forEach(m => {
+        Object.values(m).forEach(v => v instanceof Texture && v.dispose());
+        m.dispose();
+      });
+    }
+  });
 }
 
 export interface Uniforms {

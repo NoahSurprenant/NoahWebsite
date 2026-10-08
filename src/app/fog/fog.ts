@@ -1,16 +1,11 @@
-import { Component } from '@angular/core';
-import { TextureLoaderService, ThMesh, ThPlaneGeometry, ThMeshBasicMaterial, ThBoxGeometry } from '@noahsurprenant/ngx-three';
 import * as THREE from 'three';
-import { Clock, Euler, MathUtils, Vector2, Vector3 } from 'three';
+import { BoxGeometry, Clock, Group, MathUtils, Mesh, MeshBasicMaterial, PlaneGeometry, TextureLoader, Vector2, Vector3 } from 'three';
 import { ASSET_PATH } from '../assets';
 
-@Component({
-    selector: 'app-fog',
-    templateUrl: './fog.component.html',
-    styleUrls: ['./fog.component.css'],
-    imports: [ThMesh, ThPlaneGeometry, ThMeshBasicMaterial, ThBoxGeometry]
-})
-export class FogComponent {
+export class Fog {
+  // Everything the fog draws, add this to the scene
+  public readonly object = new Group();
+
   // Only for previewing the points
   public points: Vector3[] = [];
 
@@ -28,11 +23,12 @@ export class FogComponent {
   readonly minY: number;
   readonly Z: number = -50;
 
-  private textureLoader: TextureLoaderService;
-  
-  constructor(service: TextureLoaderService) {
-    this.textureLoader = service;
+  private textureLoader = new TextureLoader();
 
+  // Reusable geometry, shared by every smoke mesh. This allows us to have 1 planeGeometry instead of 1 per smokeData
+  private readonly geometry: PlaneGeometry;
+
+  constructor() {
     // Push points into 3d array, so I have preview of locations,
     this.points2D.forEach(p => {
       let point3D = new Vector3(p.x, p.y, -50);
@@ -44,6 +40,14 @@ export class FogComponent {
     this.maxX = Math.max.apply(null, this.points2D.map(i => i.x));
     this.minY = Math.min.apply(null, this.points2D.map(i => i.y));
     this.maxY = Math.max.apply(null, this.points2D.map(i => i.y));
+
+    this.geometry = new PlaneGeometry(this.SMOKE_SIZE, this.SMOKE_SIZE);
+
+    this.points.forEach(p => {
+      let box = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
+      box.position.copy(p);
+      this.object.add(box);
+    });
 
     this.initSmokeData();
   }
@@ -85,7 +89,7 @@ export class FogComponent {
 
   // Smoke/fog
   public cloudPath = `${ASSET_PATH}clouds.png`;
-  public smokeData: { pos: Vector3; rotation: Euler; scale: Vector3; maxHeight: number; originalHeight: number; speed: number; material: THREE.MeshLambertMaterial }[] = [];
+  public smokeData: { mesh: Mesh; maxHeight: number; originalHeight: number; speed: number; material: THREE.MeshLambertMaterial }[] = [];
   readonly NUM_INSTANCES = 500;
   readonly SMOKE_SIZE = 200;
 
@@ -105,19 +109,21 @@ export class FogComponent {
         let pos = this.getNewSpawnVector();
         let originalHeight = pos.y;
         let maxHeight = originalHeight + this.GetRandomInt(20, 60);
-        let rotation = new Euler(0, 0, 0);
-        let scale = new Vector3(1, 1, 1);
-  
-  
-        let newZ = Math.random() * 360;
-        rotation.z = newZ * Math.PI / 180
-        
+
         let speed = this.GetRandomFloat(0.05, 1);
-  
+
         let material = new THREE.MeshLambertMaterial();
         material.map = cloudText;
         material.transparent = true;
-        this.smokeData.push({pos, rotation, scale, maxHeight, originalHeight, speed, material});
+
+        let mesh = new Mesh(this.geometry, material);
+        mesh.position.copy(pos);
+
+        let newZ = Math.random() * 360;
+        mesh.rotation.z = newZ * Math.PI / 180
+
+        this.object.add(mesh);
+        this.smokeData.push({mesh, maxHeight, originalHeight, speed, material});
       }
     });
   }
@@ -127,14 +133,11 @@ export class FogComponent {
     const dt = this.clock.getDelta();
 
     this.smokeData.forEach( (data) => {
-      let newZEuler = data.rotation.z + dt * 0.008;
-      data.rotation = new Euler(data.rotation.x, data.rotation.y, newZEuler);
+      data.mesh.rotation.z += dt * 0.008;
 
-      let newPos = new Vector3(data.pos.x, data.pos.y + data.speed * dt, data.pos.z);
-      
+      let currentHeight = data.mesh.position.y;
+
       let newOpacity = data.material.opacity;
-
-      let currentHeight = data.pos.y;
 
       let minHeight = data.originalHeight;
       let maxHeight = data.maxHeight;
@@ -150,15 +153,13 @@ export class FogComponent {
         newOpacity = inserveLerp2Inverted;
       }
 
-
-      if (newPos.y >= data.maxHeight) {
-        newPos.y = data.originalHeight;
+      let newY = currentHeight + data.speed * dt;
+      if (newY >= data.maxHeight) {
+        newY = data.originalHeight;
       }
 
       data.material.opacity = newOpacity;
-      data.pos = newPos;
+      data.mesh.position.y = newY;
     });
-
-
   }
 }
