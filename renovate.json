@@ -1,0 +1,57 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":enableVulnerabilityAlerts"
+  ],
+  "schedule": [
+    "* 0-5 1 * *"
+  ],
+  "packageRules": [
+    {
+      "description": "Everything goes into one PR, majors included",
+      "matchPackageNames": [
+        "*"
+      ],
+      "groupName": "all dependencies",
+      "groupSlug": "all-dependencies",
+      "separateMajorMinor": false
+    },
+    {
+      "description": "Angular and the packages tied to its version: keep minors in the big PR but split majors out",
+      "matchPackageNames": [
+        "@angular/**",
+        "@angular-devkit/**",
+        "@schematics/angular",
+        "@fortawesome/angular-fontawesome",
+        "typescript"
+      ],
+      "separateMajorMinor": true
+    },
+    {
+      "description": "Angular majors get their own PR, they usually need ng update migrations and careful testing",
+      "matchPackageNames": [
+        "@angular/**",
+        "@angular-devkit/**",
+        "@schematics/angular",
+        "@fortawesome/angular-fontawesome"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "groupName": "Angular major",
+      "groupSlug": "angular"
+    },
+    {
+      "description": "Angular only supports one TypeScript minor at a time (currently >=6.0 <6.1) and ng update bumps it during Angular majors, so Renovate only does TypeScript patches",
+      "matchPackageNames": [
+        "typescript"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "major"
+      ],
+      "enabled": false
+    }
+  ]
+}
