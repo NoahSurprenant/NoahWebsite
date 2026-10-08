@@ -24,8 +24,13 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
   private readonly DEFAULT_ROTATION: Euler = new Euler(0, 0, 0);
 
   private intervalHandle?: number;
-  private uniform?: { [uniform: string]: IUniform };
+  private readonly uniform: { [uniform: string]: IUniform } = {
+    u_resolution: {value: new Vector2(window.innerWidth, window.innerHeight)},
+    u_time: {value: 0.0},
+  };
   private mesh?: Mesh;
+  // Bumped on every item change, so slow loads can tell they've been superseded
+  private loadId = 0;
 
   // Three.js plumbing
   private canvasHost = viewChild.required<ElementRef<HTMLDivElement>>('canvasHost');
@@ -68,26 +73,16 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
     effect(() => this.loadItem(this.item()));
   }
 
-  async ngOnInit(): Promise<void> {
-    const gpuTier = await getGPUTier({ benchmarksURL: `${ASSET_PATH}detect-gpu` });
-    if (this.destroyed) return;
-    if (gpuTier.tier > 1) {
-      this.fog = new Fog(this.reducedMotion.matches);
-      this.scene.add(this.fog.object);
-    }
-
+  ngOnInit(): void {
     // Set initial aspect ratio
     this.updateAspectRatio();
 
     // Add resize listener
     window.addEventListener('resize', this.handleResize);
+  }
 
-    this.uniform = {
-      u_resolution: {value: new Vector2(window.innerWidth, window.innerHeight)},
-      u_time: {value: 0.0},
-    };
-    // The fog lowers the pixel ratio cap, and u_resolution needs the drawing buffer size
-    this.resize();
+  // The Perlin sphere is only one of the items, so it's built the first time it's shown
+  private createPerlinMesh() {
     const mat = new ShaderMaterial({
       uniforms: this.uniform,
       vertexShader: `
@@ -196,12 +191,14 @@ void main() {
       wireframe: true });
       mat.wireframe = true;
     const geometry = new IcosahedronGeometry(25, 18);
-    this.mesh = new Mesh(geometry, mat);
-    this.scene.add(this.mesh);
+    return new Mesh(geometry, mat);
   }
 
-  ngAfterViewInit(): void {
+  async ngAfterViewInit(): Promise<void> {
     const host = this.canvasHost().nativeElement;
+    // Creating the WebGL context is one of the slowest steps, so it gets a task of its own
+    await yieldToMain();
+    if (this.destroyed) return;
     try {
       this.renderer = new WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
     } catch (e) {
@@ -209,16 +206,31 @@ void main() {
       console.warn('3D scene disabled, WebGL is unavailable', e);
       return;
     }
+    await yieldToMain();
+    // ngOnDestroy has already disposed of the renderer
+    if (this.destroyed) return;
     host.appendChild(this.renderer.domElement);
     this.watchPixelRatio();
 
-    this.resize();
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
 
     // Pause the timer while the tab is hidden so the model doesn't jump when we come back
     this.timer.connect(document);
     this.requestFrame();
+    this.addFogIfFastGpu();
+  }
+
+  private async addFogIfFastGpu() {
+    // detect-gpu makes a WebGL context of its own to read the GPU name, which is slow too
+    await yieldToMain();
+    if (this.destroyed) return;
+    const gpuTier = await getGPUTier({ benchmarksURL: `${ASSET_PATH}detect-gpu` });
+    if (this.destroyed || gpuTier.tier <= 1) return;
+    this.fog = new Fog(this.reducedMotion.matches);
+    this.scene.add(this.fog.object);
+    // The fog lowers the pixel ratio cap
+    this.resize();
   }
 
   private resize() {
@@ -229,10 +241,14 @@ void main() {
       // Render at the screen's real resolution so phones and HiDPI screens aren't blurry. Capped
       // because fill cost grows with the square of the ratio: 2 when the scene is light, 1.5 with
       // the fog, whose 500 overlapping transparent planes are fill-bound and soft anyway.
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.fog ? 1.5 : 2));
-      this.renderer.setSize(width, height, false);
+      const pixelRatio = Math.min(window.devicePixelRatio, this.fog ? 1.5 : 2);
+      const size = this.renderer.getSize(new Vector2());
+      // Resizing reallocates the drawing buffer, which is slow, and this runs several times on load
+      if (pixelRatio !== this.renderer.getPixelRatio() || size.x !== width || size.y !== height) {
+        this.renderer.setDrawingBufferSize(width, height, pixelRatio);
+      }
       // The Perlin shader divides gl_FragCoord, which is in drawing buffer pixels
-      this.renderer.getDrawingBufferSize(this.uniform?.['u_resolution'].value ?? new Vector2());
+      this.renderer.getDrawingBufferSize(this.uniform['u_resolution'].value);
     }
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
@@ -255,15 +271,18 @@ void main() {
   }
 
   private loadItem(item: Item) {
+    const load = ++this.loadId;
+    // Ignore loads that finished after we moved on to another item
+    const superseded = () => this.destroyed || load !== this.loadId;
+
     // Items without a model (the Perlin mesh) just clear the previous one
     if (item.assetPath === undefined) {
-      this.removeModel();
-      this.onLoaded();
+      this.showPerlinMesh(superseded);
       return;
     }
-    this.gltfLoader.load(item.assetPath, (gltf) => {
-      // Ignore loads that finished after we moved on to another item
-      if (this.destroyed || item !== this.item()) {
+    this.gltfLoader.load(item.assetPath, async (gltf) => {
+      if (!superseded()) await this.compile(gltf.scene);
+      if (superseded()) {
         disposeObject(gltf.scene);
         return;
       }
@@ -272,6 +291,36 @@ void main() {
       this.scene.add(this.model);
       this.onLoaded();
     });
+  }
+
+  private async showPerlinMesh(superseded: () => boolean) {
+    if (!this.mesh) {
+      // Building the sphere is a sizeable chunk of work, keep it out of whatever task got us here
+      await yieldToMain();
+      if (superseded()) return;
+      this.mesh = this.createPerlinMesh();
+    }
+    if (!this.mesh.parent) {
+      await this.compile(this.mesh);
+      if (superseded()) return;
+      this.scene.add(this.mesh);
+    }
+    this.removeModel();
+    this.onLoaded();
+  }
+
+  // Compiles the shaders before the object joins the scene, so its first frame doesn't stall on them
+  private async compile(object: Object3D) {
+    // Loading or building the object was a long task already, start the compile in a new one
+    await yieldToMain();
+    if (!this.renderer) return;
+    // With KHR_parallel_shader_compile, wait for the GPU without blocking. Without it (some browsers,
+    // software GL) compileAsync can't do better than compile, and logs a warning.
+    if (this.renderer.extensions.has('KHR_parallel_shader_compile')) {
+      await this.renderer.compileAsync(object, this.camera, this.scene);
+    } else {
+      this.renderer.compile(object, this.camera, this.scene);
+    }
   }
 
   private removeModel() {
@@ -325,6 +374,8 @@ void main() {
     this.resizeObserver?.disconnect();
     this.timer.dispose();
     disposeObject(this.scene);
+    // The Perlin mesh isn't in the scene yet if we left while its shaders compiled
+    if (this.mesh && !this.mesh.parent) disposeObject(this.mesh);
     this.renderer?.dispose();
   }
 
@@ -476,17 +527,17 @@ void main() {
     this.motionTime += dt;
 
     if (this.item().perlin) {
-      if (this.uniform != null)
-        this.uniform['u_time'].value = this.motionTime;
-  
+      this.uniform['u_time'].value = this.motionTime;
+
       if (this.mesh != null) {
         this.mesh.rotation.x = this.motionTime * 0.1;
         this.mesh.rotation.z = this.motionTime * 0.1;
-        this.mesh.scale.set(1, 1, 1);
+        this.mesh.visible = true;
       }
     } else {
+      // Hidden rather than scaled to 0, so its vertex shader doesn't keep running every frame
       if (this.mesh != null)
-        this.mesh.scale.set(0, 0, 0);
+        this.mesh.visible = false;
     }
     
 
@@ -538,4 +589,9 @@ function disposeObject(object: Object3D) {
       });
     }
   });
+}
+
+// Lets the browser handle input and paint before the next piece of setup work
+function yieldToMain() {
+  return new Promise<void>(resolve => setTimeout(resolve));
 }
