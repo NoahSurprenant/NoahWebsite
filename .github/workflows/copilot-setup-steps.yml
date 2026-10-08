@@ -35,8 +35,5 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
 
-      - name: Install Angular CLI
-        run: npm install -g @angular/cli
-
       - name: Install JavaScript dependencies
-        run: npm ci --force
+        run: npm ci
