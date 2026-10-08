@@ -51,7 +51,9 @@ async function watchForProblems(page: Page, origin: string) {
   return {
     /** Everything reported so far, CSP violations included. */
     async all() {
-      const csp = await page.evaluate(() => (window as unknown as { __cspViolations: string[] }).__cspViolations);
+      const csp = await page
+        .evaluate(() => (window as unknown as { __cspViolations: string[] }).__cspViolations)
+        .catch((e: Error) => [`Could not read the CSP violations: ${e.message}`]);
       return [...problems, ...csp];
     },
     /** Waits until no requests are in flight, e.g. for a model to finish downloading. */
@@ -81,43 +83,47 @@ function litPixels(page: Page) {
 test('the page loads, renders the 3D scene and cycles items, with the production CSP', async ({ page, baseURL }) => {
   const problems = await watchForProblems(page, new URL(baseURL!).origin);
 
-  const response = await page.goto('/');
-  expect(response?.headers()['content-security-policy'], 'the server sends the CSP').toContain("default-src 'self'");
+  try {
+    const response = await page.goto('/');
+    expect(response?.headers()['content-security-policy'], 'the server sends the CSP').toContain("default-src 'self'");
 
-  // The static content
-  await expect(page.locator('.name')).toHaveText('Noah Surprenant');
-  for (const name of ICON_LINKS) {
-    const link = page.getByRole('link', { name, exact: true });
-    await expect(link).toBeVisible();
-    await expect(link.locator('svg')).toBeVisible();
+    // The static content
+    await expect(page.locator('.name')).toHaveText('Noah Surprenant');
+    for (const name of ICON_LINKS) {
+      const link = page.getByRole('link', { name, exact: true });
+      await expect(link).toBeVisible();
+      await expect(link.locator('svg')).toBeVisible();
+    }
+
+    // The deferred scene: a caption, and a canvas with something drawn on it
+    const caption = page.locator('app-skyrim-loading .caption');
+    await expect(caption).toBeVisible();
+    // "You got a cat" is the template's placeholder text, replaced by the real caption on render
+    await expect(caption).not.toHaveText('You got a cat');
+    await expect(caption).toHaveText(/\S.{40,}/);
+    await expect.poll(() => litPixels(page), { message: 'the canvas draws non-black pixels', timeout: 30_000 }).toBeGreaterThan(100);
+    await problems.settle();
+
+    // Item cycling. Normally a loaded model glides to a new spot (11-19 units at 0.66 units/s), then
+    // a 5-15 s interval switches the item: 20-45 s in all. With prefers-reduced-motion the app skips
+    // the glide (the model appears at its target on the next frame), so the switch comes 5-15 s
+    // later. The component checks the media query every frame, so turning it on now, after the scene
+    // has loaded and rendered with motion, takes the same switch path without any test hooks.
+    //
+    // Playwright's fake clock (fastForward) would skip even that wait, but it also takes over
+    // requestAnimationFrame, and SwiftShader needs ~1 s per frame for the 1M-triangle shopping cart.
+    // Together they stalled the page for 20-50 s at a time when tried, so the test waits in real time.
+    const firstCaption = await caption.textContent();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await expect(caption, 'the item changes').not.toHaveText(firstCaption!, { timeout: 45_000 });
+    await expect(caption).toHaveText(/\S.{40,}/);
+
+    // The next item (usually another model) loads and draws without errors too
+    await problems.settle();
+    await expect.poll(() => litPixels(page), { message: 'the canvas still draws after the switch', timeout: 30_000 }).toBeGreaterThan(100);
+  } finally {
+    // Checked even when a step above failed, and reported instead of it: the cause (a 404, a CSP
+    // violation, an exception) says more than the symptom (a blank canvas, a caption that never changes)
+    expect(await problems.all(), 'errors, CSP violations or other-origin requests on the page').toEqual([]);
   }
-
-  // The deferred scene: a caption, and a canvas with something drawn on it
-  const caption = page.locator('app-skyrim-loading .caption');
-  await expect(caption).toBeVisible();
-  // "You got a cat" is the template's placeholder text, replaced by the real caption on render
-  await expect(caption).not.toHaveText('You got a cat');
-  await expect(caption).toHaveText(/\S.{40,}/);
-  await expect.poll(() => litPixels(page), { message: 'the canvas draws non-black pixels', timeout: 30_000 }).toBeGreaterThan(100);
-  await problems.settle();
-
-  // Item cycling. Normally a loaded model glides to a new spot (11-19 units at 0.66 units/s), then
-  // a 5-15 s interval switches the item: 20-45 s in all. With prefers-reduced-motion the app skips
-  // the glide (the model appears at its target on the next frame), so the switch comes 5-15 s
-  // later. The component checks the media query every frame, so turning it on now, after the scene
-  // has loaded and rendered with motion, takes the same switch path without any test hooks.
-  //
-  // Playwright's fake clock (fastForward) would skip even that wait, but it also takes over
-  // requestAnimationFrame, and SwiftShader needs ~1 s per frame for the 1M-triangle shopping cart.
-  // Together they stalled the page for 20-50 s at a time when tried, so the test waits in real time.
-  const firstCaption = await caption.textContent();
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await expect(caption, 'the item changes').not.toHaveText(firstCaption!, { timeout: 45_000 });
-  await expect(caption).toHaveText(/\S.{40,}/);
-
-  // The next item (usually another model) loads and draws without errors too
-  await problems.settle();
-  await expect.poll(() => litPixels(page), { message: 'the canvas still draws after the switch', timeout: 30_000 }).toBeGreaterThan(100);
-
-  expect(await problems.all()).toEqual([]);
 });
