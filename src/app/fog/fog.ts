@@ -1,13 +1,10 @@
 import * as THREE from 'three';
-import { BoxGeometry, Group, MathUtils, Mesh, MeshBasicMaterial, PlaneGeometry, TextureLoader, Vector2, Vector3 } from 'three';
+import { Group, MathUtils, Mesh, PlaneGeometry, TextureLoader, Vector2, Vector3 } from 'three';
 import { ASSET_PATH } from '../assets';
 
 export class Fog {
   // Everything the fog draws, add this to the scene
   public readonly object = new Group();
-
-  // Only for previewing the points
-  public points: Vector3[] = [];
 
   public points2D: Vector2[] = [
     new Vector2(-130, -80), // top left
@@ -28,13 +25,9 @@ export class Fog {
   // Reusable geometry, shared by every smoke mesh. This allows us to have 1 planeGeometry instead of 1 per smokeData
   private readonly geometry: PlaneGeometry;
 
-  constructor() {
-    // Push points into 3d array, so I have preview of locations,
-    this.points2D.forEach(p => {
-      let point3D = new Vector3(p.x, p.y, -50);
-      this.points.push(point3D);
-    });
-
+  // spreadStart: start each puff partway through its rise instead of fading in from the bottom.
+  // Used for reduced motion, where the fog never moves and would otherwise stay invisible.
+  constructor(private readonly spreadStart = false) {
     // Determine the min and max possible spawn locations
     this.minX = Math.min.apply(null, this.points2D.map(i => i.x));
     this.maxX = Math.max.apply(null, this.points2D.map(i => i.x));
@@ -42,12 +35,6 @@ export class Fog {
     this.maxY = Math.max.apply(null, this.points2D.map(i => i.y));
 
     this.geometry = new PlaneGeometry(this.SMOKE_SIZE, this.SMOKE_SIZE);
-
-    this.points.forEach(p => {
-      let box = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
-      box.position.copy(p);
-      this.object.add(box);
-    });
 
     this.initSmokeData();
   }
@@ -116,6 +103,9 @@ export class Fog {
 
         let mesh = new Mesh(this.geometry, material);
         mesh.position.copy(pos);
+        if (this.spreadStart) {
+          mesh.position.y = this.GetRandomFloat(originalHeight, maxHeight);
+        }
 
         let newZ = Math.random() * 360;
         mesh.rotation.z = newZ * Math.PI / 180
