@@ -37,10 +37,35 @@ describe('HudComponent', () => {
     frames.frame(start + 4 * 60_000 + 30_000);
     expect(timer.textContent).toBe('00:30:00');
     expect(timer.classList.contains('low')).toBe(true);
-    // And starts again when it runs out
-    frames.frame(start + 5 * 60_000 + 1000);
-    expect(timer.textContent).toBe('04:59:00');
     expect(el.querySelector('canvas')).toBeTruthy();
+  });
+
+  it('blacks out when the battery runs out, then switches to external power, then starts again', async () => {
+    stubMatchMedia();
+    const { fixture, el, frames, timer } = await create();
+    const hud = fixture.componentInstance;
+    const start = 1000;
+    const label = () => el.querySelector('.battery .label')?.textContent;
+    const lit = () => Array.from(el.querySelectorAll('.modes .on')).map(s => s.textContent);
+    expect(hud.power()).toBe('internal');
+
+    frames.frame(start + 5 * 60_000 + 500);
+    await fixture.whenStable();
+    expect(hud.power()).toBe('down');
+    expect(timer.textContent).toBe('00:00:00');
+    expect(lit()).toEqual(['INTERNAL']);
+
+    frames.frame(start + 5 * 60_000 + 3500);
+    await fixture.whenStable();
+    expect(hud.power()).toBe('external');
+    expect(label()).toBe('EXTERNAL POWER CONNECTED');
+    expect(lit()).toEqual(['EXTERNAL']);
+
+    frames.frame(start + 5 * 60_000 + 4500 + 60_000);
+    await fixture.whenStable();
+    expect(hud.power()).toBe('internal');
+    expect(timer.textContent).toBe('04:00:00');
+    expect(label()).toContain('ACTIVE TIME REMAINING');
   });
 
   it('draws the waveforms and moves the sync ratio', async () => {

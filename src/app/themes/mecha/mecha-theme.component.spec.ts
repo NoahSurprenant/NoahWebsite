@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { fakeCanvas, manualFrames } from '../../testing/canvas';
 import { stubMatchMedia } from '../../testing/match-media';
+import { HudComponent } from './hud.component';
 import { MechaThemeComponent } from './mecha-theme.component';
 
 describe('MechaThemeComponent', () => {
@@ -21,6 +23,19 @@ describe('MechaThemeComponent', () => {
     expect(Array.from(el.querySelectorAll('.console a span')).map(s => s.textContent))
       .toEqual(['LinkedIn', 'GitHub', 'Email', 'Resume']);
     expect(el.querySelectorAll('.grid i').length).toBe(12);
+  });
+
+  it('blacks out the whole theme when the HUD runs out of power', async () => {
+    stubMatchMedia();
+    fakeCanvas();
+    manualFrames();
+    const fixture = TestBed.createComponent(MechaThemeComponent);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    const hud = fixture.debugElement.query(By.directive(HudComponent)).componentInstance as HudComponent;
+    hud.power.set('down');
+    await fixture.whenStable();
+    expect(el.querySelector('app-power-down')?.classList.contains('down')).toBe(true);
   });
 
   it('runs the banner message twice, so its scroll loops without a jump', async () => {

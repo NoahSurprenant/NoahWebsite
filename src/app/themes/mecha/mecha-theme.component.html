@@ -7,7 +7,7 @@
 
     <app-title-card class="card"></app-title-card>
 
-    <app-hud class="hud"></app-hud>
+    <app-hud #hud class="hud"></app-hud>
 
     <nav class="console" aria-label="Links">
         <p class="console-header" aria-hidden="true"><span>HQ</span> LINK STATUS: ONLINE</p>
@@ -24,4 +24,7 @@
     </nav>
 
     <app-banner class="banner"></app-banner>
+
+    <!-- On top of everything, but clicks go through: the links keep working in the dark -->
+    <app-power-down class="power" [power]="hud.power()"></app-power-down>
 </div>

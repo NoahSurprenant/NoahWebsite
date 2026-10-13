@@ -87,7 +87,7 @@ canvas {
     font-size: 14px;
 }
 
-.vote .deny {
+.vote li.deny {
     background: #e3001b;
 }
 

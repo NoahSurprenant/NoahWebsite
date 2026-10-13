@@ -268,3 +268,33 @@ for (const [theme, selectors] of Object.entries(LAYOUT)) {
     expect(problems).toEqual([]);
   });
 }
+
+test('the Neon Genesis theme blacks out when its battery runs out, and the links still work', async ({ page }) => {
+  // The battery lasts five minutes, so the clock is faked and fast-forwarded
+  await page.clock.install();
+  await page.goto('/?theme=mecha');
+  await page.clock.runFor(1000);
+  await page.clock.fastForward('04:59');
+
+  const overlay = page.locator('app-power-down');
+  const stage = async () => {
+    await page.clock.runFor(200);
+    return overlay.getAttribute('class');
+  };
+  await expect.poll(stage, { message: 'the screen goes dark' }).toContain('down');
+  await expect(overlay).toContainText('ACTIVITY LIMIT REACHED');
+  await expect(page.locator('app-hud .timer')).toHaveText('00:00:00');
+
+  // The overlay lets clicks through: each link is still what's under the pointer
+  for (const name of ICON_LINKS) {
+    const link = page.getByRole('link', { name, exact: true });
+    const box = (await link.boundingBox())!;
+    const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest('a')?.getAttribute('aria-label'), [box.x + box.width / 2, box.y + box.height / 2]);
+    expect(hit, `${name} is clickable in the dark`).toBe(name);
+  }
+
+  await expect.poll(stage, { message: 'external power comes on' }).toContain('external');
+  await expect(page.locator('app-hud .modes .on')).toHaveText('EXTERNAL');
+  await expect.poll(stage, { message: 'and the countdown starts again' }).not.toMatch(/down|external/);
+  await expect(page.locator('app-hud .timer')).toHaveText(/^04:5\d:\d\d$/);
+});

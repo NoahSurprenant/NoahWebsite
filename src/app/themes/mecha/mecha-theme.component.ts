@@ -3,18 +3,20 @@ import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { LINKS } from '../../links';
 import { BannerComponent } from './banner.component';
 import { HudComponent } from './hud.component';
+import { PowerDownComponent } from './power-down.component';
 import { TitleCardComponent } from './title-card.component';
 
 /**
  * A 90s mecha anime: the next-episode title card, command centre readouts around it, the links on
- * a console of hexagons, and an emergency banner scrolling along the bottom.
+ * a console of hexagons, and an emergency banner scrolling along the bottom. When the battery
+ * runs out the screen blacks out until external power comes on.
  */
 @Component({
   selector: 'app-mecha-theme',
   templateUrl: './mecha-theme.component.html',
   styleUrls: ['./mecha-theme.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BannerComponent, FaIconComponent, HudComponent, TitleCardComponent],
+  imports: [BannerComponent, FaIconComponent, HudComponent, PowerDownComponent, TitleCardComponent],
 })
 export class MechaThemeComponent {
   protected readonly links = LINKS;

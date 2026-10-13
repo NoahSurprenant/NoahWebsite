@@ -1,7 +1,11 @@
 <!-- Decoration: the readouts mean nothing, so screen readers skip them -->
 <div class="panel battery" aria-hidden="true">
+    @if (power() === 'external') {
+    <p class="label">EXTERNAL POWER CONNECTED</p>
+    } @else {
     <p class="label">INTERNAL POWER &mdash; ACTIVE TIME REMAINING</p>
-    <p class="modes"><span class="on">INTERNAL</span><span>EXTERNAL</span></p>
+    }
+    <p class="modes"><span [class.on]="power() !== 'external'">INTERNAL</span><span [class.on]="power() === 'external'">EXTERNAL</span></p>
     <p #timer class="timer">05:00:00</p>
 </div>
 

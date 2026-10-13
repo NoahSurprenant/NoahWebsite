@@ -1,6 +1,10 @@
 import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, signal, viewChild } from '@angular/core';
 
 const BATTERY_MS = 5 * 60 * 1000;
+// When the battery runs out: dark for a few seconds, then external power, then a fresh battery
+const DOWN_MS = 3000;
+const EXTERNAL_MS = 1500;
+const CYCLE_MS = BATTERY_MS + DOWN_MS + EXTERNAL_MS;
 const VOTE_MS = 3500;
 const CORES = ['CORE·1', 'CORE·2', 'CORE·3'];
 const WAVES = [
@@ -8,6 +12,9 @@ const WAVES = [
   { color: '#ff7a00', speed: 1.6, freq: 0.07, amp: 0.22 },
   { color: '#e3001b', speed: 0.7, freq: 0.03, amp: 0.35 },
 ];
+
+/** Where the power comes from: the battery, nowhere (it ran out), or the external cable. */
+export type Power = 'internal' | 'down' | 'external';
 
 /**
  * The command centre readouts: the internal battery counting down to its activity limit, sync
@@ -23,6 +30,8 @@ export class HudComponent implements AfterViewInit, OnDestroy {
   protected readonly cores = CORES;
   readonly votes = signal<boolean[]>([true, true, false]);
   protected readonly sync = signal('41.3');
+  /** The theme blacks out while this is 'down' */
+  readonly power = signal<Power>('internal');
 
   private readonly timer = viewChild.required<ElementRef<HTMLElement>>('timer');
   private readonly graph = viewChild.required<ElementRef<HTMLCanvasElement>>('graph');
@@ -56,7 +65,14 @@ export class HudComponent implements AfterViewInit, OnDestroy {
     this.start ??= now;
     const still = this.reducedMotion.matches;
     const elapsed = still ? 0 : now - this.start;
-    this.drawTimer(BATTERY_MS - (elapsed % BATTERY_MS));
+    const t = elapsed % CYCLE_MS;
+    if (t < BATTERY_MS) {
+      this.power.set('internal');
+      this.drawTimer(BATTERY_MS - t);
+    } else {
+      this.power.set(t < BATTERY_MS + DOWN_MS ? 'down' : 'external');
+      this.drawTimer(0);
+    }
     this.drawGraph(still ? 0 : elapsed / 1000);
     if (!still && now - this.lastSync > 200) {
       this.lastSync = now;
