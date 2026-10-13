@@ -39,9 +39,14 @@ jobs:
 
   # Loads the production build in Chromium with the enforced CSP from netlify.toml (e2e/), so a
   # dependency bump that breaks the 3D scene fails the PR. Software WebGL, so no GPU is needed.
+  # It also screenshots every theme at every screen size and puts them on the PR for review.
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      # The comment linking the screenshots
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -61,6 +66,94 @@ jobs:
 
       - name: Build and run the browser smoke test
         run: npm run e2e
+
+      # One picture per theme with all its screen sizes, from the layout test's screenshots. Even
+      # when a test failed, since the pictures may show why.
+      - name: Make the screenshot contact sheets
+        id: sheets
+        if: ${{ !cancelled() && hashFiles('screenshots/*/*.png') != '' }}
+        run: node e2e/contact-sheets.mjs
+
+      # Unzipped, so each opens straight in the browser. One file per upload is the limit for that.
+      - name: Upload the Skyrim screenshots
+        id: skyrim
+        if: ${{ !cancelled() && steps.sheets.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: screenshots/skyrim.png
+          archive: false
+          retention-days: 30
+
+      - name: Upload the terminal screenshots
+        id: terminal
+        if: ${{ !cancelled() && steps.sheets.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: screenshots/terminal.png
+          archive: false
+          retention-days: 30
+
+      - name: Upload the Xbox screenshots
+        id: xbox
+        if: ${{ !cancelled() && steps.sheets.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: screenshots/xbox.png
+          archive: false
+          retention-days: 30
+
+      - name: Upload the mecha screenshots
+        id: mecha
+        if: ${{ !cancelled() && steps.sheets.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: screenshots/mecha.png
+          archive: false
+          retention-days: 30
+
+      # The full-size originals, for a closer look
+      - name: Upload all the screenshots
+        id: all
+        if: ${{ !cancelled() && steps.sheets.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screenshots
+          path: screenshots/*/*.png
+          retention-days: 30
+
+      # Links in the run's summary, and on a PR in one comment that each run updates in place
+      - name: Link the screenshots
+        if: ${{ !cancelled() && steps.all.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          SKYRIM: ${{ steps.skyrim.outputs.artifact-url }}
+          TERMINAL: ${{ steps.terminal.outputs.artifact-url }}
+          XBOX: ${{ steps.xbox.outputs.artifact-url }}
+          MECHA: ${{ steps.mecha.outputs.artifact-url }}
+          ALL: ${{ steps.all.outputs.artifact-url }}
+        run: |
+          marker='<!-- theme-screenshots -->'
+          body="$marker
+          ### Screenshots
+
+          Every theme at 1920x1080, 1280x720, 1024x768, 768x1024, 844x390 and 360x640, as of $SHA:
+          [Skyrim]($SKYRIM) · [Terminal]($TERMINAL) · [Xbox]($XBOX) · [Mecha]($MECHA) · [all, full size (zip)]($ALL)
+
+          Each theme opens as one picture in the browser (signed in to GitHub). Kept for 30 days."
+          echo "$body" >> "$GITHUB_STEP_SUMMARY"
+          # Only on PRs from this repo: a fork's PR gets a read-only token
+          if [ -z "$PR" ] || [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+            exit 0
+          fi
+          existing=$(gh api "repos/${{ github.repository }}/issues/$PR/comments" --paginate \
+            --jq "[.[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\")))][0].id // empty" | head -n1)
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$existing" -f body="$body" > /dev/null
+          else
+            gh pr comment "$PR" -R "${{ github.repository }}" --body "$body"
+          fi
 
       - name: Upload the Playwright traces
         if: failure()

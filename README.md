@@ -13,7 +13,7 @@ My personal website, built with Angular 22. It has several themes; the default i
 
 The cog in the top-left corner switches theme. A pick is remembered (localStorage) and put in the address bar, so the URL can be copied and sent. A `?theme=` link always wins over the remembered pick; unknown values fall back to it, then to Skyrim.
 
-Each theme is a component under `src/app/themes/` that draws the whole page from the shared name and links in `src/app/links.ts`. To add one: create the component, add it to `THEMES` in `src/app/themes/themes.ts` and to the `@switch` in `app.component.html`, and give the cog its colours under `[data-theme="..."]` in `src/styles.css`.
+Each theme is a component under `src/app/themes/` that draws the whole page from the shared name and links in `src/app/links.ts`. To add one: create the component, add it to `THEMES` in `src/app/themes/themes.ts` and to the `@switch` in `app.component.html`, give the cog its colours under `[data-theme="..."]` in `src/styles.css`, and add it to `LAYOUT` in `e2e/smoke.spec.ts` and to the screenshot uploads in `.github/workflows/ci.yml`.
 
 ## Development
 
@@ -34,6 +34,8 @@ The smoke test (`e2e/`) serves the production build with the `Content-Security-P
 Netlify builds and deploys the site. The build command and publish directory are set in the Netlify UI; the Node version is pinned in `netlify.toml`.
 
 GitHub Actions (`.github/workflows/ci.yml`) builds and tests every pull request and every push to `master`, and runs the browser smoke test in a separate job.
+
+The browser tests also check every theme at six screen sizes (1920x1080 down to a 360x640 phone) for anything off screen or overlapping, and screenshot each one. CI turns those into one picture per theme and links them in a comment on the PR (updated on each push) and in the run summary, so a PR's look can be reviewed without checking it out. Locally they land in `screenshots/`; `node e2e/contact-sheets.mjs` makes the per-theme pictures.
 
 ## Dependency updates
 

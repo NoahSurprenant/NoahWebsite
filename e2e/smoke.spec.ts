@@ -240,6 +240,8 @@ for (const [theme, selectors] of Object.entries(LAYOUT)) {
       if (theme === 'skyrim') await expect(page.locator('app-skyrim-loading .caption')).not.toHaveText('You got a cat');
       // Let the entrance animations finish and the web font arrive, both of which move things
       await page.waitForTimeout(2500);
+      // For review: CI puts these on the PR (e2e/contact-sheets.mjs)
+      await page.screenshot({ path: `screenshots/${theme}/${width}x${height}.png` });
       const check = async (what: string) => {
         for (const p of await layoutProblems(page, selectors)) problems.push(`${width}x${height}${what}: ${p}`);
       };
