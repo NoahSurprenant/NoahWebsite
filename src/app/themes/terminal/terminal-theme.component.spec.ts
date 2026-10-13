@@ -55,6 +55,9 @@ describe('TerminalThemeComponent', () => {
     const fixture = await create();
     fixture.componentInstance.run('clear');
     expect(fixture.componentInstance.lines()).toEqual([]);
+    fixture.componentInstance.run('whoami');
+    fixture.componentInstance.run('cls');
+    expect(fixture.componentInstance.lines()).toEqual([]);
   });
 });
 
@@ -91,6 +94,8 @@ describe('TerminalThemeComponent commands', () => {
     expect(output('open')).toContain('No such link');
     expect(output('sudo rm -rf /')).toContain('not in the sudoers file');
     expect(output('logout')).toContain('There is no escape');
+    expect(output('exit')).toContain('There is no escape');
+    expect(output('xdg-open email')).toBe('Opening Email...');
     expect(output('echo hello   world')).toBe('hello world');
     expect(output('')).toBe('');
     expect(output('theme vaporwave')).toBe('theme: vaporwave: unknown theme');

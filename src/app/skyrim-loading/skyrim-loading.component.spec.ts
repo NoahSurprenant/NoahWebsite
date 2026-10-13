@@ -1,0 +1,402 @@
+import { TestBed } from '@angular/core/testing';
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Texture, TextureLoader, Vector3 } from 'three';
+import { manualFrames } from '../testing/canvas';
+import { REDUCED_MOTION, stubMatchMedia } from '../testing/match-media';
+import type { SkyrimLoadingComponent as Component } from './skyrim-loading.component';
+
+// jsdom has no WebGL, so three.js's renderer, the model loader and the GPU check are stand-ins the
+// tests drive by hand
+const mocks = vi.hoisted(() => {
+  const state = {
+    renderers: [] as FakeRenderer[],
+    noWebGL: false,
+    parallelCompile: true,
+    loads: [] as { path: string; onLoad: (gltf: { scene: unknown }) => void }[],
+    gpu: undefined as unknown as { promise: Promise<{ tier: number }>; resolve: (tier: { tier: number }) => void },
+  };
+
+  class FakeRenderer {
+    domElement = document.createElement('canvas');
+    extensions = { has: () => state.parallelCompile };
+    width = 0;
+    height = 0;
+    ratio = 1;
+    renders = 0;
+    resizes = 0;
+    disposed = false;
+    compile = vi.fn();
+    compileAsync = vi.fn(async () => {});
+    constructor() {
+      if (state.noWebGL) throw new Error('WebGL is unavailable');
+      state.renderers.push(this);
+    }
+    getSize(target: { set(x: number, y: number): unknown }) {
+      target.set(this.width, this.height);
+      return target;
+    }
+    getPixelRatio() { return this.ratio; }
+    setDrawingBufferSize(width: number, height: number, ratio: number) {
+      Object.assign(this, { width, height, ratio });
+      this.resizes++;
+    }
+    getDrawingBufferSize(target: { set(x: number, y: number): unknown }) {
+      target.set(this.width * this.ratio, this.height * this.ratio);
+      return target;
+    }
+    render() { this.renders++; }
+    dispose() { this.disposed = true; }
+  }
+
+  class FakeGLTFLoader {
+    setMeshoptDecoder() {}
+    load(path: string, onLoad: (gltf: { scene: unknown }) => void) {
+      state.loads.push({ path, onLoad });
+    }
+  }
+
+  return { state, FakeRenderer, FakeGLTFLoader };
+});
+
+vi.mock('three', async (original) => ({ ...(await original<typeof import('three')>()), WebGLRenderer: mocks.FakeRenderer }));
+vi.mock('three/addons/loaders/GLTFLoader.js', () => ({ GLTFLoader: mocks.FakeGLTFLoader }));
+vi.mock('detect-gpu', () => ({ getGPUTier: () => mocks.state.gpu.promise }));
+
+// Imported once the mocks are in place: a static import loads three.js before they are
+let SkyrimLoadingComponent: typeof Component;
+beforeAll(async () => {
+  ({ SkyrimLoadingComponent } = await import('./skyrim-loading.component'));
+});
+
+const PERLIN = 5;
+
+/** Lets every pending setTimeout (the scene's yields to the browser) and promise run. */
+async function flush() {
+  for (let i = 0; i < 20; i++) await new Promise(resolve => setTimeout(resolve));
+}
+
+/** A loaded model, with an array of materials and a texture, which is how disposal sees them. */
+function model() {
+  const scene = new Group();
+  const map = new Texture();
+  scene.add(new Mesh(new BoxGeometry(), [new MeshBasicMaterial({ map }), new MeshBasicMaterial()]));
+  return { scene, map };
+}
+
+describe('SkyrimLoadingComponent', () => {
+  let frames: ReturnType<typeof manualFrames>;
+
+  beforeEach(() => {
+    Object.assign(mocks.state, { renderers: [], noWebGL: false, parallelCompile: true, loads: [] });
+    let resolve!: (tier: { tier: number }) => void;
+    mocks.state.gpu = { promise: new Promise(r => (resolve = r)), resolve: tier => resolve(tier) };
+    stubMatchMedia();
+    frames = manualFrames();
+    // The fog's cloud texture arrives at once
+    vi.spyOn(TextureLoader.prototype, 'load').mockImplementation((_url, onLoad) => {
+      const texture = new Texture(document.createElement('img'));
+      onLoad?.(texture);
+      return texture;
+    });
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  /** Creates the scene showing the given item, and waits for its renderer. */
+  async function create(item = 0, { settle = true } = {}) {
+    const fixture = TestBed.createComponent(SkyrimLoadingComponent);
+    const scene = fixture.componentInstance;
+    // Instead of the random first pick, before the first render loads it
+    scene.itemIndex.set(item);
+    fixture.detectChanges();
+    if (settle) await flush();
+    return { fixture, scene, el: fixture.nativeElement as HTMLElement, renderer: () => mocks.state.renderers.at(-1)! };
+  }
+
+  it('sets up the renderer and draws a frame each animation frame', async () => {
+    const { el, renderer } = await create();
+    expect(el.querySelector('.canvas-host canvas')).toBe(renderer().domElement);
+    frames.frame(16);
+    frames.frame(32);
+    expect(renderer().renders).toBe(2);
+  });
+
+  it('adds the fog on a fast GPU, and renders at a lower pixel ratio for it', async () => {
+    vi.stubGlobal('devicePixelRatio', 3);
+    const { scene, renderer } = await create();
+    expect(renderer().ratio).toBe(2);
+    mocks.state.gpu.resolve({ tier: 3 });
+    await flush();
+    expect(scene['fog']).toBeDefined();
+    expect(renderer().ratio).toBe(1.5);
+    // The fog drifts with the scene
+    frames.frame(16);
+    expect(scene['fog']!.smokeData.length).toBeGreaterThan(0);
+  });
+
+  it('leaves the fog out on a slow GPU', async () => {
+    const { scene } = await create();
+    mocks.state.gpu.resolve({ tier: 1 });
+    await flush();
+    expect(scene['fog']).toBeUndefined();
+  });
+
+  it("keeps the caption and links, without the scene, when there's no WebGL", async () => {
+    mocks.state.noWebGL = true;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { el, scene } = await create();
+    expect(el.querySelector('canvas')).toBeNull();
+    expect(warn).toHaveBeenCalled();
+    // Resizing still keeps the camera right
+    scene['resize']();
+    expect(el.querySelector('.caption')?.textContent).toMatch(/\S{3}/);
+  });
+
+  it('stops setting up when it was destroyed before the renderer was made', async () => {
+    const { fixture } = await create(0, { settle: false });
+    fixture.destroy();
+    await flush();
+    expect(mocks.state.renderers).toEqual([]);
+  });
+
+  it('stops setting up when it was destroyed while the renderer was being made', async () => {
+    const { fixture, el } = await create(0, { settle: false });
+    await new Promise(resolve => setTimeout(resolve));
+    expect(mocks.state.renderers).toHaveLength(1);
+    fixture.destroy();
+    await flush();
+    expect(el.querySelector('canvas')).toBeNull();
+    expect(mocks.state.renderers[0].disposed).toBe(true);
+  });
+
+  it('skips the fog when destroyed during the GPU check', async () => {
+    const { fixture, scene } = await create();
+    fixture.destroy();
+    mocks.state.gpu.resolve({ tier: 3 });
+    await flush();
+    expect(scene['fog']).toBeUndefined();
+  });
+
+  it('skips the GPU check when destroyed just before it', async () => {
+    const { fixture, scene } = await create(0, { settle: false });
+    // Two yields: one before the renderer, one before it joins the page and the fog check starts
+    await new Promise(resolve => setTimeout(resolve));
+    await new Promise(resolve => setTimeout(resolve));
+    fixture.destroy();
+    mocks.state.gpu.resolve({ tier: 3 });
+    await flush();
+    expect(scene['fog']).toBeUndefined();
+  });
+
+  it('follows the screen: resizes the drawing buffer only when it changes, and the pixel ratio', async () => {
+    const { el, scene, renderer } = await create();
+    Object.defineProperties(el.querySelector('.canvas-host')!, { clientWidth: { value: 1000 }, clientHeight: { value: 500 } });
+    frames.resize();
+    expect([renderer().width, renderer().height]).toEqual([1000, 500]);
+    const resizes = renderer().resizes;
+    scene['resize']();
+    expect(renderer().resizes).toBe(resizes);
+    vi.stubGlobal('devicePixelRatio', 2);
+    scene['watchPixelRatio']();
+    expect(renderer().ratio).toBe(2);
+    expect(renderer().resizes).toBe(resizes + 1);
+  });
+
+  it('stops watching the pixel ratio once destroyed', async () => {
+    const { fixture, scene, renderer } = await create();
+    fixture.destroy();
+    const resizes = renderer().resizes;
+    scene['watchPixelRatio']();
+    expect(renderer().resizes).toBe(resizes);
+  });
+
+  it('shows a loaded model, compiled before it joins the scene, at its scale and rotation', async () => {
+    const { fixture, scene, renderer } = await create(1);
+    const { scene: loaded } = model();
+    mocks.state.loads.at(-1)!.onLoad({ scene: loaded });
+    await flush();
+    expect(renderer().compileAsync).toHaveBeenCalledWith(loaded, expect.anything(), expect.anything());
+    expect(loaded.parent).toBeTruthy();
+    // The Raspberry Pi is scaled up and tipped towards the camera
+    expect(scene.itemScale).toEqual(new Vector3(2, 2, 2));
+    expect(scene.itemRot.x).toBeCloseTo(10 * 3.14 / 180);
+    frames.frame(16);
+    expect(loaded.scale).toEqual(new Vector3(2, 2, 2));
+    fixture.destroy();
+  });
+
+  it('skips compiling models when there is no renderer', async () => {
+    mocks.state.noWebGL = true;
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await create(0);
+    const { scene: loaded } = model();
+    mocks.state.loads.at(-1)!.onLoad({ scene: loaded });
+    await flush();
+    expect(loaded.parent).toBeTruthy();
+    expect(mocks.state.renderers).toEqual([]);
+  });
+
+  it('compiles in one go where the GPU has no parallel shader compile', async () => {
+    mocks.state.parallelCompile = false;
+    const { renderer } = await create();
+    mocks.state.loads.at(-1)!.onLoad({ scene: model().scene });
+    await flush();
+    expect(renderer().compile).toHaveBeenCalled();
+    expect(renderer().compileAsync).not.toHaveBeenCalled();
+  });
+
+  it('throws away a model that arrives after the scene moved on, and replaces the old one', async () => {
+    const { fixture, scene } = await create(0);
+    const first = model();
+    mocks.state.loads[0].onLoad({ scene: first.scene });
+    await flush();
+    expect(first.scene.parent).toBeTruthy();
+
+    // Two switches before either load finishes: the first of them is stale when it arrives
+    scene.itemIndex.set(2);
+    TestBed.tick();
+    scene.itemIndex.set(3);
+    TestBed.tick();
+    const [, stale, current] = mocks.state.loads;
+    const staleModel = model();
+    const dispose = vi.spyOn(staleModel.map, 'dispose');
+    stale.onLoad({ scene: staleModel.scene });
+    await flush();
+    expect(staleModel.scene.parent).toBeNull();
+    expect(dispose).toHaveBeenCalled();
+
+    const next = model();
+    current.onLoad({ scene: next.scene });
+    await flush();
+    expect(next.scene.parent).toBeTruthy();
+    expect(first.scene.parent).toBeNull();
+    fixture.destroy();
+  });
+
+  it('builds the Perlin sphere when it comes up, animates it, and hides it for models', async () => {
+    const { fixture, scene } = await create(PERLIN, { settle: false });
+    // A frame before the sphere is built just skips it
+    scene.onBeforeRender();
+    expect(scene['mesh']).toBeUndefined();
+    await flush();
+    const sphere = scene['mesh']!;
+    expect(sphere.parent).toBeTruthy();
+    frames.frame(16);
+    expect(sphere.visible).toBe(true);
+
+    // Back to a model: the sphere stays built but hidden
+    scene.itemIndex.set(0);
+    TestBed.tick();
+    frames.frame(32);
+    expect(sphere.visible).toBe(false);
+
+    // And shown again without being rebuilt
+    scene.itemIndex.set(PERLIN);
+    TestBed.tick();
+    await flush();
+    expect(scene['mesh']).toBe(sphere);
+    fixture.destroy();
+  });
+
+  it('drops the sphere if the scene moves on while it is being built or compiled', async () => {
+    const { scene } = await create(PERLIN, { settle: false });
+    // Superseded before the sphere was built
+    scene.itemIndex.set(0);
+    TestBed.tick();
+    await flush();
+    expect(scene['mesh']).toBeUndefined();
+
+    // Superseded while it compiled
+    scene.itemIndex.set(PERLIN);
+    TestBed.tick();
+    await new Promise(resolve => setTimeout(resolve));
+    scene.itemIndex.set(0);
+    TestBed.tick();
+    await flush();
+    expect(scene['mesh']?.parent ?? null).toBeNull();
+  });
+
+  it('disposes of a sphere still compiling when destroyed', async () => {
+    const { fixture, scene } = await create(PERLIN, { settle: false });
+    await flush();
+    scene['scene'].remove(scene['mesh']!);
+    const dispose = vi.spyOn(scene['mesh']!.geometry, 'dispose');
+    fixture.destroy();
+    expect(dispose).toHaveBeenCalled();
+  });
+
+  it('glides a model to a new spot, then switches to another item a few seconds later', async () => {
+    const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+    const { fixture, scene } = await create(0);
+    mocks.state.loads.at(-1)!.onLoad({ scene: model().scene });
+    await flush();
+    const from = scene.itemPos.clone();
+    const target = scene.TargetPos!;
+    now.mockReturnValue(1000);
+    frames.frame(1000);
+    // One second at 0.66 units a second, towards the target
+    expect(scene.itemPos.distanceTo(from)).toBeCloseTo(0.66, 1);
+
+    // A long frame never overshoots
+    for (let t = 2; t < 60; t++) {
+      now.mockReturnValue(t * 1000);
+      frames.frame(t * 1000);
+    }
+    expect(scene.itemPos).toEqual(target);
+    const item = scene.itemIndex();
+    vi.advanceTimersByTime(15_000);
+    expect(scene.itemIndex()).not.toBe(item);
+    fixture.destroy();
+  });
+
+  it('holds everything still with reduced motion, jumping straight to the target', async () => {
+    stubMatchMedia(REDUCED_MOTION);
+    const { fixture, scene } = await create(0);
+    mocks.state.loads.at(-1)!.onLoad({ scene: model().scene });
+    await flush();
+    const rotation = scene.itemRot.y;
+    frames.frame(16);
+    expect(scene.itemPos).toEqual(scene.TargetPos);
+    expect(scene.itemRot.y).toBe(rotation);
+    fixture.destroy();
+  });
+
+  it('picks a new spot and a new item different from the current ones', async () => {
+    const { scene } = await create(0);
+    scene.OriginalPos = scene['positions'][0];
+    // The first tries are the current ones, so it tries again
+    vi.spyOn(Math, 'random').mockReturnValueOnce(0).mockReturnValueOnce(0.9);
+    expect(scene['getNewTarget']()).toBe(scene['positions'][2]);
+    vi.spyOn(Math, 'random').mockReturnValueOnce(0.5 / 6).mockReturnValueOnce(1.5 / 6);
+    expect(scene['getNewItemIndex']()).toBe(1);
+  });
+
+  it('frames the models and the sphere for the screen shape', async () => {
+    const { scene } = await create(0);
+    const resize = (width: number, height: number) => {
+      vi.stubGlobal('innerWidth', width);
+      vi.stubGlobal('innerHeight', height);
+      window.dispatchEvent(new Event('resize'));
+    };
+    const origin = new Vector3(0, 0, 0);
+    resize(1600, 900);
+    // Landscape: looking at the origin, the models off to the left
+    expect(scene.lookAtPosition().equals(origin)).toBe(true);
+    resize(390, 844);
+    // Portrait: panned to the models, and backed off so they fit across
+    expect(scene.lookAtPosition().x).toBe(-20);
+    expect(scene.camPosition().z).toBeGreaterThan(80);
+
+    scene.itemIndex.set(PERLIN);
+    // The sphere is at the origin: no pan, pulled back on portrait...
+    expect(scene.lookAtPosition().equals(origin)).toBe(true);
+    expect(scene.camPosition().z).toBeGreaterThan(80);
+    // ...and at the standard distance on landscape
+    resize(1600, 900);
+    expect(scene.camPosition().equals(new Vector3(0, 0, 80))).toBe(true);
+  });
+});

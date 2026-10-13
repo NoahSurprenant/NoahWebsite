@@ -42,20 +42,23 @@ export function fakeCanvas({ webgl = true, links = true } = {}): CanvasCalls {
 }
 
 /**
- * Animation frames that only run when the test says, and a ResizeObserver (jsdom has neither
- * worth using). Returns `frame(time)`, which runs the callbacks waiting for the next frame.
+ * Animation frames and a ResizeObserver that only fire when the test says (jsdom has neither worth
+ * using). `frame(time)` runs the callbacks waiting for the next frame; `resize()` tells every
+ * observer its element changed size.
  */
 export function manualFrames() {
   let waiting = new Map<number, FrameRequestCallback>();
   let id = 0;
+  const observers = new Set<() => void>();
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
     waiting.set(++id, callback);
     return id;
   });
   vi.stubGlobal('cancelAnimationFrame', (handle: number) => waiting.delete(handle));
   vi.stubGlobal('ResizeObserver', class {
-    observe() {}
-    disconnect() {}
+    constructor(private readonly callback: () => void) {}
+    observe() { observers.add(this.callback); }
+    disconnect() { observers.delete(this.callback); }
   });
   return {
     frame(time: number) {
@@ -65,6 +68,9 @@ export function manualFrames() {
     },
     get pending() {
       return waiting.size;
+    },
+    resize() {
+      observers.forEach(callback => callback());
     },
   };
 }

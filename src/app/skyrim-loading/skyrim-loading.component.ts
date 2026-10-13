@@ -440,7 +440,6 @@ void main() {
 
   private moveAmt: number = 0.66;
   private moving: boolean = false;
-  private shouldRotate: boolean = true;
   private rotateAmt: number = 0.024;
 
 
@@ -544,7 +543,7 @@ void main() {
     this.fog?.onBeforeRender(dt);
 
     // Slowly rotate
-    if (this.shouldRotate) {
+    if (this.item().shouldRotate) {
       this.itemRot = new Euler(this.itemRot.x, this.itemRot.y + this.rotateAmt * dt, this.itemRot.z);
     }
 

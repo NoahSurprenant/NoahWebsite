@@ -68,7 +68,6 @@ export class TerminalThemeComponent {
     }
 
     switch (command) {
-      case undefined:
       case '':
         break;
       case 'help':

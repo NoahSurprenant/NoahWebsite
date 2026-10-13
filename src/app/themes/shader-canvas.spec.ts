@@ -34,6 +34,16 @@ describe('ShaderCanvas', () => {
     expect(calls.uniforms.get('u_resolution')).toEqual([shader.canvas.width, shader.canvas.height]);
   });
 
+  it('resizes its drawing buffer with its element', () => {
+    fakeCanvas();
+    const frames = manualFrames();
+    vi.stubGlobal('devicePixelRatio', 1);
+    const shader = new ShaderCanvas(host, 'void main() {}');
+    Object.defineProperties(host, { clientWidth: { value: 800 }, clientHeight: { value: 600 } });
+    frames.resize();
+    expect([shader.canvas.width, shader.canvas.height]).toEqual([800, 600]);
+  });
+
   it("doesn't jump ahead after a long gap, like a hidden tab", () => {
     const calls = fakeCanvas();
     const frames = manualFrames();

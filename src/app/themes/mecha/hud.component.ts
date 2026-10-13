@@ -29,7 +29,8 @@ export class HudComponent implements AfterViewInit, OnDestroy {
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   // The first frame's time: the countdown starts when it's first drawn
   private start?: number;
-  private frameId?: number;
+  // Set by the first frame, drawn as soon as the view exists
+  private frameId = 0;
   private voteInterval?: number;
   private lastSync = 0;
 
@@ -42,7 +43,7 @@ export class HudComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     window.clearInterval(this.voteInterval);
-    if (this.frameId !== undefined) cancelAnimationFrame(this.frameId);
+    cancelAnimationFrame(this.frameId);
   }
 
   protected approved() {

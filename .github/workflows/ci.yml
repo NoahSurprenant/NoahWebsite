@@ -34,8 +34,9 @@ jobs:
       - name: Build
         run: npx ng build
 
+      # Fails below 100% coverage (thresholds in angular.json)
       - name: Test
-        run: npx ng test --watch=false
+        run: npx ng test --watch=false --coverage
 
   # Loads the production build in Chromium with the enforced CSP from netlify.toml (e2e/), so a
   # dependency bump that breaks the 3D scene fails the PR. Software WebGL, so no GPU is needed.
