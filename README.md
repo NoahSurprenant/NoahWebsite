@@ -1,6 +1,19 @@
 # NoahWebsite
 
-My personal website: a three.js scene styled after the Skyrim loading screen, built with Angular 22.
+My personal website, built with Angular 22. It has several themes; the default is a three.js scene styled after the Skyrim loading screen.
+
+## Themes
+
+| Theme | Link |
+| --- | --- |
+| Skyrim loading screen (default) | https://noahsurprenant.com/ |
+| Terminal (try `help`) | https://noahsurprenant.com/?theme=terminal |
+| Original Xbox dashboard | https://noahsurprenant.com/?theme=xbox |
+| 90s mecha anime title card and HUD | https://noahsurprenant.com/?theme=mecha |
+
+The cog in the top-left corner switches theme. A pick is remembered (localStorage) and put in the address bar, so the URL can be copied and sent. A `?theme=` link always wins over the remembered pick; unknown values fall back to it, then to Skyrim.
+
+Each theme is a component under `src/app/themes/` that draws the whole page from the shared name and links in `src/app/links.ts`. To add one: create the component, add it to `THEMES` in `src/app/themes/themes.ts` and to the `@switch` in `app.component.html`, and give the cog its colours under `[data-theme="..."]` in `src/styles.css`.
 
 ## Development
 

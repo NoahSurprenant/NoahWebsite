@@ -1,0 +1,27 @@
+<div class="screen">
+    <div class="grid" aria-hidden="true">
+        @for (flash of flashes; track $index) {
+        <i [style.left]="flash.left" [style.top]="flash.top" [style.animation-delay]="flash.delay" [style.animation-duration]="flash.duration"></i>
+        }
+    </div>
+
+    <app-title-card class="card"></app-title-card>
+
+    <app-hud class="hud"></app-hud>
+
+    <nav class="console" aria-label="Links">
+        <p class="console-header" aria-hidden="true"><span>HQ</span> LINK STATUS: ONLINE</p>
+        <ul>
+            @for (link of links; track link.id) {
+            <li>
+                <a [href]="link.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="link.label">
+                    <fa-icon [icon]="link.icon"></fa-icon>
+                    <span>{{ link.short }}</span>
+                </a>
+            </li>
+            }
+        </ul>
+    </nav>
+
+    <div class="banner" aria-hidden="true"><span>{{ banner }}{{ banner }}</span></div>
+</div>

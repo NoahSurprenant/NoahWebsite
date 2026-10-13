@@ -1,0 +1,159 @@
+:host {
+    display: block;
+    height: 100%;
+    font-family: jost, Roboto, sans-serif;
+    font-weight: 600;
+    color: #e6ffc8;
+}
+
+/* The CSS background only shows without WebGL; normally the shader canvas covers it */
+.dashboard {
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+    background: radial-gradient(ellipse at 30% 45%, #1f5e0c, #0b2905 45%, #020800);
+}
+
+.backdrop,
+.backdrop ::ng-deep canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.name {
+    position: absolute;
+    top: 80px;
+    left: 80px;
+    margin: 0;
+    font-size: clamp(24px, 4vw, 48px);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #f2ff9e;
+    text-shadow: 0 0 12px rgb(200 255 80 / 60%);
+}
+
+.menu {
+    position: absolute;
+    top: 50%;
+    right: 12%;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    transform: translateY(-50%);
+}
+
+/* Gel buttons: translucent green with a highlight across the top and a sheen that sweeps over */
+.menu a {
+    position: relative;
+    overflow: hidden;
+    width: min(320px, 60vw);
+    padding: 14px 0;
+    border: 2px solid #8cf04a;
+    border-radius: 999px;
+    background: linear-gradient(rgb(170 255 90 / 45%), rgb(40 120 10 / 55%) 55%, rgb(20 70 5 / 70%));
+    font-size: 26px;
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-transform: uppercase;
+    transition: opacity 0.3s, filter 0.3s;
+}
+
+.menu a::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 35%, rgb(255 255 255 / 35%) 50%, transparent 65%) -150% 0 / 200% 100% no-repeat;
+}
+
+.menu a span {
+    position: relative;
+}
+
+/* The one under the pointer or focus is selected: bright and pulsing, the rest dim */
+.menu:has(a:hover, a:focus-visible) a:not(:hover, :focus-visible) {
+    opacity: 0.55;
+    filter: saturate(0.6);
+}
+
+.menu a:hover,
+.menu a:focus-visible {
+    border-color: #f2ff9e;
+    color: #fbff7a;
+    box-shadow: 0 0 24px 4px rgb(200 255 80 / 55%);
+}
+
+.buttons {
+    position: absolute;
+    right: 12%;
+    bottom: 48px;
+    margin: 0;
+    font-size: 20px;
+}
+
+.buttons span {
+    display: inline-grid;
+    place-items: center;
+    width: 1.5em;
+    height: 1.5em;
+    margin-inline: 0.8em 0.3em;
+    border-radius: 50%;
+}
+
+.a { background: #3fa82a; }
+.b { background: #c8201b; }
+
+@media (prefers-reduced-motion: no-preference) {
+    /* Swoop in one after another, then wobble like gel, out of step with each other */
+    .menu a {
+        animation:
+            swoop 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) calc(0.9s + var(--i) * 0.12s) backwards,
+            wobble 3.2s ease-in-out calc(var(--i) * -0.8s) infinite;
+    }
+    .menu a::before {
+        animation: sheen 5s ease-in-out calc(2s + var(--i) * 0.25s) infinite;
+    }
+    .menu a:hover,
+    .menu a:focus-visible {
+        animation: pulse 1.1s ease-in-out infinite;
+    }
+    .name,
+    .buttons {
+        animation: swoop 0.8s ease-out 0.6s backwards;
+    }
+}
+
+@keyframes swoop {
+    from { opacity: 0; transform: translateX(120px) scale(0.7); }
+}
+
+@keyframes wobble {
+    33% { transform: scale(1.025, 0.95); }
+    66% { transform: scale(0.985, 1.04); }
+}
+
+@keyframes sheen {
+    0%, 70% { background-position: -150% 0; }
+    100% { background-position: 250% 0; }
+}
+
+@keyframes pulse {
+    50% { transform: scale(1.07); box-shadow: 0 0 36px 10px rgb(220 255 90 / 70%); }
+}
+
+/* Portrait: the orb behind, the name and menu stacked over it */
+@media (max-aspect-ratio: 1/1) {
+    .name { top: 76px; left: 0; right: 0; text-align: center; }
+    .menu { top: auto; bottom: 88px; right: 50%; transform: translateX(50%); }
+    .menu a { font-size: 22px; }
+    .buttons { right: 0; left: 0; bottom: 24px; text-align: center; }
+}
+
+@media (max-height: 500px) and (min-aspect-ratio: 1/1) {
+    .name { top: 20px; left: 72px; }
+    .menu { gap: 10px; }
+    .menu a { padding: 8px 0; font-size: 20px; }
+    .buttons { bottom: 12px; }
+}

@@ -1,0 +1,11 @@
+<!-- All text, so a heading. The trailing spaces keep the lines apart when read out (the grid
+     hides them on screen); --n is each line's place in the cut-in order. -->
+@for (card of card(); track card.number) {
+<h1 class="card">
+    @for (line of nameLines; track $index) {
+    <span [style.--n]="$index">{{ line }} </span>
+    }
+    <span class="episode" [style.--n]="nameLines.length">EPISODE:{{ card.number }} </span>
+    <span class="title" [style.--n]="nameLines.length + 1">{{ card.title }}</span>
+</h1>
+}

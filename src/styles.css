@@ -39,3 +39,35 @@ a {
 a:hover {
     cursor: pointer;
 }
+
+/* The theme cog and its menu (app-theme-switcher), coloured to match each theme. ThemeService sets
+   <html data-theme>. */
+:root {
+    --switcher-fg: #fff;
+    --switcher-bg: rgb(0 0 0 / 85%);
+    --switcher-accent: #fff;
+    --switcher-font: jost, Roboto, sans-serif;
+}
+
+[data-theme="terminal"] {
+    --switcher-fg: #3dff6e;
+    --switcher-bg: #0a0f0a;
+    --switcher-accent: #3dff6e;
+    --switcher-font: ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+    --switcher-radius: 0;
+}
+
+[data-theme="xbox"] {
+    --switcher-fg: #e6ffc8;
+    --switcher-bg: rgb(11 41 5 / 92%);
+    --switcher-accent: #8cf04a;
+    --switcher-radius: 16px;
+}
+
+[data-theme="mecha"] {
+    --switcher-fg: #ff7a00;
+    --switcher-bg: #000;
+    --switcher-accent: #ff7a00;
+    --switcher-font: ui-monospace, Menlo, Consolas, monospace;
+    --switcher-radius: 0;
+}

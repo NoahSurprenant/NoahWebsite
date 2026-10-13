@@ -1,0 +1,21 @@
+<!-- Decoration: the readouts mean nothing, so screen readers skip them -->
+<div class="panel battery" aria-hidden="true">
+    <p class="label">INTERNAL POWER &mdash; ACTIVE TIME REMAINING</p>
+    <p class="modes"><span class="on">INTERNAL</span><span>EXTERNAL</span></p>
+    <p #timer class="timer">05:00:00</p>
+</div>
+
+<div class="panel sync" aria-hidden="true">
+    <p class="label">SYNC RATIO <span class="value">{{ sync() }}%</span></p>
+    <canvas #graph></canvas>
+</div>
+
+<div class="panel vote" aria-hidden="true">
+    <p class="label">DECISION SYSTEM</p>
+    <ul>
+        @for (core of cores; track core; let i = $index) {
+        <li [class.deny]="!votes()[i]">{{ core }}<b>{{ votes()[i] ? 'APPROVE' : 'DENY' }}</b></li>
+        }
+    </ul>
+    <p class="result" [class.deny]="!approved()">RESOLUTION: {{ approved() ? 'APPROVED' : 'REJECTED' }}</p>
+</div>

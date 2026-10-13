@@ -1,0 +1,130 @@
+:host {
+    display: block;
+    height: 100%;
+}
+
+ul {
+    position: absolute;
+    top: 80px;
+    right: 80px;
+    display: flex;
+    align-items: center;
+}
+
+li {
+    vertical-align: middle;
+    list-style: none;
+    float: left;
+    padding-inline: 8px;
+}
+
+.name {
+    font-size: 2em
+}
+
+fa-icon {
+    font-size: 4em;
+}
+
+
+
+@media screen and (max-width: 1000px),
+    screen and (max-height: 600px) {
+    ul {
+        top: 70px;
+        right: 70px;
+    }
+    fa-icon {
+        font-size: 3.5em;
+    }
+    .name {
+        font-size: 1.75em;
+    }
+}
+
+@media screen and (max-width: 800px),
+    screen and (max-height: 400px) {
+    ul {
+        top: 60px;
+        right: 60px;
+    }
+    fa-icon {
+        font-size: 3em;
+    }
+    .name {
+        font-size: 1.5em;
+    }
+}
+
+@media screen and (max-width: 600px),
+    screen and (max-height: 200px){
+    ul {
+        top: 40px;
+        right: 40px;
+    }
+    fa-icon {
+        font-size: 2em;
+    }
+    .name {
+        font-size: 1em;
+    }
+}
+
+/* Phones and short landscape screens: tighter to the corner, and every icon link gets
+   a 44px tap target */
+@media screen and (max-width: 600px),
+    screen and (max-height: 500px) {
+    ul {
+        top: 12px;
+        right: 16px;
+        margin: 0;
+        padding: 0;
+    }
+    li {
+        padding-inline: 4px;
+    }
+    a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+    }
+    fa-icon {
+        font-size: 2.25em;
+    }
+    .name {
+        font-size: 1.25em;
+        padding-inline-end: 8px;
+    }
+}
+
+/* Portrait phones: the name gets its own row above the icons instead of wrapping */
+@media screen and (max-width: 600px) and (max-aspect-ratio: 1/1) {
+    ul {
+        left: 16px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    .name {
+        flex-basis: 100%;
+        text-align: right;
+        font-size: 1.5em;
+    }
+}
+
+/* Stands in for the scene's full-height canvas host until the deferred chunk loads */
+.scene-placeholder {
+  height: 100%;
+}
+
+/* Beat the icon under the pointer (or keyboard focus). Plain CSS rather than mouse events: the
+   browser tracks :hover itself, so the beat can't get stuck after a tap on a phone or when a link
+   opens a new tab. Devices without real hover (phones) skip it, as does reduced motion.
+   fa-beat is Font Awesome's own keyframes; the svg is rendered by fa-icon, hence ::ng-deep. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    li:hover ::ng-deep svg,
+    a:focus-visible ::ng-deep svg {
+        animation: fa-beat 1s ease-in-out infinite;
+    }
+}

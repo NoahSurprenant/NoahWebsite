@@ -1,0 +1,40 @@
+:host {
+    display: block;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Close to the show's heavy condensed serif with a system one, squeezed and stretched tall */
+.card {
+    display: grid;
+    width: fit-content;
+    /* Room below for the vertical stretch, which the layout doesn't see */
+    margin: 0 0 0.45em;
+    color: #fff;
+    font: 900 var(--card-size, clamp(48px, 10vw, 160px))/0.92 "Times New Roman", Times, "Liberation Serif", serif;
+    transform: scale(0.82, 1.12);
+    transform-origin: left top;
+}
+
+.episode {
+    justify-self: end;
+    margin-top: 0.15em;
+    font-size: 0.42em;
+}
+
+.title {
+    max-width: 14em;
+    margin-top: 0.1em;
+    font-size: 0.42em;
+}
+
+/* Hard cuts: each line is simply there from its moment on, after a beat of black */
+@media (prefers-reduced-motion: no-preference) {
+    .card span {
+        animation: cut 0s calc(0.25s + var(--n) * 0.3s) backwards;
+    }
+}
+
+@keyframes cut {
+    from { visibility: hidden; }
+}

@@ -127,3 +127,51 @@ test('the page loads, renders the 3D scene and cycles items, with the production
     expect(await problems.all(), 'errors, CSP violations or other-origin requests on the page').toEqual([]);
   }
 });
+
+// The 3D scene is only in the default theme, which the test above covers in depth
+for (const theme of ['terminal', 'xbox', 'mecha']) {
+  test(`?theme=${theme} shows that theme and every link, with the production CSP`, async ({ page, baseURL }) => {
+    const problems = await watchForProblems(page, new URL(baseURL!).origin);
+    try {
+      await page.goto(`/?theme=${theme}`);
+      await expect(page.locator(`app-${theme}-theme`)).toBeVisible();
+      await expect(page.locator('app-skyrim-theme')).toHaveCount(0);
+      for (const name of ICON_LINKS) {
+        await expect(page.getByRole('link', { name, exact: true })).toBeVisible();
+      }
+      await problems.settle();
+    } finally {
+      expect(await problems.all(), 'errors, CSP violations or other-origin requests on the page').toEqual([]);
+    }
+  });
+}
+
+test('the cog switches theme, puts it in the URL and remembers it', async ({ page, baseURL }) => {
+  const problems = await watchForProblems(page, new URL(baseURL!).origin);
+  try {
+    await page.goto('/');
+    await expect(page.locator('app-skyrim-theme')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Change theme' }).click();
+    const menu = page.getByRole('group', { name: 'Themes' });
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole('button', { name: 'Skyrim' })).toHaveAttribute('aria-pressed', 'true');
+    await menu.getByRole('button', { name: 'Terminal' }).click();
+
+    await expect(page.locator('app-terminal-theme')).toBeVisible();
+    await expect(menu, 'picking a theme closes the menu').toBeHidden();
+    expect(new URL(page.url()).searchParams.get('theme')).toBe('terminal');
+
+    // The URL can be shared, and the pick is remembered without it
+    await page.reload();
+    await expect(page.locator('app-terminal-theme')).toBeVisible();
+    await page.goto('/');
+    await expect(page.locator('app-terminal-theme')).toBeVisible();
+    // A link still wins over the remembered pick
+    await page.goto('/?theme=xbox');
+    await expect(page.locator('app-xbox-theme')).toBeVisible();
+    await problems.settle();
+  } finally {
+    expect(await problems.all(), 'errors, CSP violations or other-origin requests on the page').toEqual([]);
+  }
+});

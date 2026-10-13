@@ -1,46 +1,14 @@
 <main class="app-frame">
 
-    <!-- three.js is most of the bundle, so the scene is lazy: the name and links paint first.
-         "on immediate" starts fetching the chunk right after that first render. -->
-    @defer (on immediate) {
-    <app-skyrim-loading></app-skyrim-loading>
-    } @placeholder {
-    <div class="scene-placeholder"></div>
+    <!-- Each theme draws the whole page: the name, the links and whatever goes behind them -->
+    @switch (theme()) {
+        @case ('terminal') { <app-terminal-theme></app-terminal-theme> }
+        @case ('xbox') { <app-xbox-theme></app-xbox-theme> }
+        @case ('mecha') { <app-mecha-theme></app-mecha-theme> }
+        @default { <app-skyrim-theme></app-skyrim-theme> }
     }
 
-    <ul class="list">
-        <li class="name">
-            Noah Surprenant
-        </li>
-
-        <li>
-            <a href="https://www.linkedin.com/in/noahsurprenant/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-                <fa-icon [icon]="faLinkedin">
-                </fa-icon>
-            </a>
-        </li>
-
-        <li>
-            <a href="https://github.com/NoahSurprenant" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
-                <fa-icon [icon]="faGithub">
-                </fa-icon>
-            </a>
-        </li>
-
-        <li>
-            <a href="mailto:noah.surprenant@gmail.com" target="_blank" rel="noopener noreferrer" aria-label="Email">
-                <fa-icon [icon]="faEnvelope">
-                </fa-icon>
-            </a>
-        </li>
-        
-        <li>
-            <a href="https://cdn.noahsurprenant.com/Noah%20Surprenant%20-%20Resume.pdf" target="_blank" rel="noopener noreferrer" aria-label="Resume (PDF)">
-                <fa-icon [icon]="faFilePdf">
-                </fa-icon>
-            </a>
-        </li>
-    </ul>
+    <app-theme-switcher></app-theme-switcher>
 
     @if (displayWatermark()) {
     <div class="windows-watermark">

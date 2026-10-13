@@ -1,0 +1,18 @@
+<div class="dashboard">
+    <div #backdrop class="backdrop" aria-hidden="true"></div>
+
+    <h1 class="name">{{ name }}</h1>
+
+    <nav class="menu" (keydown)="onKeydown($event)">
+        @for (link of links; track link.id; let i = $index) {
+        <a [href]="link.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="link.label" [style.--i]="i">
+            <span>{{ link.short }}</span>
+        </a>
+        }
+    </nav>
+
+    <p class="buttons" aria-hidden="true">
+        <span class="a">A</span> Select
+        <span class="b">B</span> Back
+    </p>
+</div>

@@ -2,14 +2,22 @@ import { Component } from '@angular/core';
 import { DeferBlockBehavior, DeferBlockState, TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
 import { SkyrimLoadingComponent } from './skyrim-loading/skyrim-loading.component';
+import { REDUCED_MOTION, stubMatchMedia } from './testing/match-media';
+import { ThemeService } from './themes/theme.service';
+import { SkyrimThemeComponent } from './themes/skyrim/skyrim-theme.component';
 
 // The real scene needs WebGL, which the test DOM doesn't have
 @Component({ selector: 'app-skyrim-loading', template: '<p class="stub-scene"></p>' })
 class SkyrimLoadingStubComponent {}
 
+const LINK_NAMES = ['LinkedIn', 'GitHub', 'Email', 'Resume (PDF)'];
+
 describe('AppComponent', () => {
   beforeEach(async () => {
-    TestBed.overrideComponent(AppComponent, {
+    stubMatchMedia(REDUCED_MOTION);
+    localStorage.clear();
+    window.history.replaceState(null, '', '/');
+    TestBed.overrideComponent(SkyrimThemeComponent, {
       remove: { imports: [SkyrimLoadingComponent] },
       add: { imports: [SkyrimLoadingStubComponent] },
     });
@@ -57,14 +65,38 @@ describe('AppComponent', () => {
     const fixture = TestBed.createComponent(AppComponent);
     await fixture.whenStable();
     const links = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.list a'));
-    expect(links.map(a => a.getAttribute('aria-label'))).toEqual([
-      'LinkedIn',
-      'GitHub',
-      'Email',
-      'Resume (PDF)',
-    ]);
+    expect(links.map(a => a.getAttribute('aria-label'))).toEqual(LINK_NAMES);
     for (const a of links) {
       expect(a.getAttribute('rel')).toBe('noopener noreferrer');
     }
   });
+
+  it('should list every theme behind the cog, with the current one pressed', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    await fixture.whenStable();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.cog')?.getAttribute('aria-label')).toBe('Change theme');
+    const buttons = Array.from(compiled.querySelectorAll<HTMLButtonElement>('#theme-menu button'));
+    expect(buttons.map(b => b.textContent?.trim())).toEqual(['Skyrim', 'Terminal', 'Original Xbox', 'Mecha HUD']);
+    expect(buttons.map(b => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false', 'false']);
+
+    buttons[2].click();
+    await fixture.whenStable();
+    expect(compiled.querySelector('app-xbox-theme')).toBeTruthy();
+    expect(compiled.querySelector('app-skyrim-theme')).toBeNull();
+    expect(window.location.search).toBe('?theme=xbox');
+  });
+
+  for (const theme of ['terminal', 'xbox', 'mecha'] as const) {
+    it(`should show the name and every link in the ${theme} theme`, async () => {
+      TestBed.inject(ThemeService).theme.set(theme);
+      const fixture = TestBed.createComponent(AppComponent);
+      await fixture.whenStable();
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(compiled.querySelector(`app-${theme}-theme`)).toBeTruthy();
+      expect(compiled.textContent?.toUpperCase().replace(/\s+/g, ' ')).toContain('NOAH SURPRENANT');
+      const links = Array.from(compiled.querySelectorAll(`app-${theme}-theme a`));
+      expect(links.map(a => a.getAttribute('aria-label'))).toEqual(LINK_NAMES);
+    });
+  }
 });
