@@ -13,6 +13,8 @@ export class ShaderCanvas {
   private frameId?: number;
   private last?: number;
   private time = 0;
+  /** False if WebGL is missing or the shader didn't compile, so nothing is drawn */
+  readonly running: boolean = false;
 
   /**
    * @param stillTime With reduced motion, the time the shader is frozen at
@@ -40,6 +42,7 @@ export class ShaderCanvas {
     gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
     gl.useProgram(this.program);
 
+    this.running = true;
     host.appendChild(this.canvas);
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);

@@ -100,3 +100,26 @@ describe('AppComponent', () => {
     });
   }
 });
+
+describe('AppComponent watermark', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows "Activate Windows" only on full-size desktop windows', async () => {
+    stubMatchMedia(REDUCED_MOTION);
+    TestBed.overrideComponent(SkyrimThemeComponent, {
+      remove: { imports: [SkyrimLoadingComponent] },
+      add: { imports: [SkyrimLoadingStubComponent] },
+    });
+    const fixture = TestBed.createComponent(AppComponent);
+    const resize = async (width: number, height: number) => {
+      vi.stubGlobal('innerWidth', width);
+      vi.stubGlobal('innerHeight', height);
+      window.dispatchEvent(new Event('resize'));
+      await fixture.whenStable();
+      return !!(fixture.nativeElement as HTMLElement).querySelector('.windows-watermark');
+    };
+    expect(await resize(1920, 1080)).toBe(true);
+    expect(await resize(1919, 1080)).toBe(false);
+    expect(await resize(1920, 800)).toBe(false);
+  });
+});

@@ -99,29 +99,15 @@
     font-size: 26px;
 }
 
-/* Red emergency strip, hazard-striped at the ends, its message scrolling */
 .banner {
     position: absolute;
     right: 0;
     bottom: 0;
     left: 0;
-    overflow: hidden;
-    border-block: 4px solid;
-    border-image: repeating-linear-gradient(-45deg, var(--red) 0 10px, #000 10px 20px) 4;
-    background: var(--red);
-    color: #000;
-    font: 900 18px/28px "Times New Roman", Times, serif;
-    letter-spacing: 0.15em;
-    white-space: nowrap;
-}
-
-.banner span {
-    display: inline-block;
 }
 
 @media (prefers-reduced-motion: no-preference) {
     .grid i { animation: flash 4s steps(1) infinite; }
-    .banner span { animation: scroll 40s linear infinite; }
     .console a:hover,
     .console a:focus-visible { animation: alarm 0.5s steps(1) infinite; }
 }
@@ -132,10 +118,6 @@
     12% { opacity: 0; }
 }
 
-@keyframes scroll {
-    to { transform: translateX(-50%); }
-}
-
 @keyframes alarm {
     50% { background: var(--orange); color: #000; }
 }
@@ -143,16 +125,28 @@
 /* Narrower screens: everything stacks, and only the battery readout stays */
 @media (max-width: 1100px) {
     .screen { grid-template: "card" auto "hud" 1fr "console" auto / minmax(0, 1fr); }
-    .card { --card-size: clamp(48px, 10vw, 160px); }
+    /* By height too, so a two-line title still leaves room for the readout and links */
+    .card { --card-size: clamp(48px, min(10vw, 9vh), 160px); }
     .hud { justify-self: start; }
 }
 
 @media (max-width: 600px) {
     .screen { padding: 76px 16px 56px; }
     .console { justify-self: stretch; }
+    .console ul { justify-content: space-between; }
+}
+
+/* Phones either way up: a smaller console */
+@media (max-width: 600px), (max-height: 500px) and (min-aspect-ratio: 1/1) {
     .console-header { font-size: 12px; }
-    .banner { font-size: 14px; }
-    .console ul { justify-content: space-between; gap: 4px; padding: 10px; }
+    .console ul { gap: 4px; padding: 10px; }
     .console a { width: 72px; font-size: 10px; }
     .console fa-icon { font-size: 20px; }
+}
+
+/* Short landscape screens (a phone on its side): the card and links side by side, no readouts */
+@media (max-height: 500px) and (min-aspect-ratio: 1/1) {
+    .screen { grid-template: "card console" 1fr / minmax(0, 1fr) auto; padding: 60px 24px 48px; }
+    .card { --card-size: clamp(32px, 7vw, 60px); }
+    .hud { display: none; }
 }

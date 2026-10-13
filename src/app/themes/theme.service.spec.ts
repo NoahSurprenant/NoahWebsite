@@ -56,3 +56,20 @@ describe('ThemeService', () => {
     expect(document.documentElement.dataset['theme']).toBe('xbox');
   });
 });
+
+describe('ThemeService without storage', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.history.replaceState(null, '', '/');
+  });
+
+  it('still works when storage is off, it just forgets', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('SecurityError'); });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('QuotaExceededError'); });
+    const service = TestBed.inject(ThemeService);
+    expect(service.theme()).toBe('skyrim');
+    service.select('xbox');
+    expect(service.theme()).toBe('xbox');
+    expect(window.location.search).toBe('?theme=xbox');
+  });
+});

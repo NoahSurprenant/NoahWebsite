@@ -22,6 +22,17 @@
     height: 100%;
 }
 
+/* Only painted without WebGL; otherwise it just marks where the shader draws the orb */
+.orb {
+    position: absolute;
+    border-radius: 50%;
+}
+
+.orb.fallback {
+    background: radial-gradient(circle at 42% 38%, #f4ffb0, #b7f53a 18%, #4fb312 45%, #1b5a06 70%);
+    box-shadow: 0 0 80px 30px rgb(150 255 60 / 35%);
+}
+
 .name {
     position: absolute;
     top: 80px;

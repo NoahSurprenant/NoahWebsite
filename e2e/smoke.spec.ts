@@ -175,3 +175,85 @@ test('the cog switches theme, puts it in the URL and remembers it', async ({ pag
     expect(await problems.all(), 'errors, CSP violations or other-origin requests on the page').toEqual([]);
   }
 });
+
+// Desktop, laptop, small laptop, tablet portrait, phone on its side, small phone. The "Activate
+// Windows" watermark (1920x1080) is a joke overlay on top of everything, so it's left out.
+const SIZES = [[1920, 1080], [1280, 720], [1024, 768], [768, 1024], [844, 390], [360, 640]] as const;
+
+// Per theme, the parts that must each be fully on screen and must not overlap one another.
+// "text:" measures an element's text rather than its box, for right-aligned text in a wide box.
+const LAYOUT: Record<string, string[]> = {
+  // The name and each icon rather than the list, whose box spans the width on phones
+  skyrim: ['.cog', 'text:app-skyrim-theme .name', 'app-skyrim-theme .list a', 'app-skyrim-loading .caption'],
+  terminal: ['.cog', 'app-terminal-theme .screen'],
+  xbox: ['.cog', 'app-xbox-theme .name', 'app-xbox-theme .orb', 'app-xbox-theme .menu', 'app-xbox-theme .buttons'],
+  mecha: ['.cog', 'app-title-card h1', 'app-hud .panel', 'app-mecha-theme .console', 'app-banner'],
+};
+
+/** Every problem with the layout: parts off screen or overlapping, and links not fully visible. */
+function layoutProblems(page: Page, selectors: string[]) {
+  return page.evaluate((selectors) => {
+    const problems: string[] = [];
+    const boxes: { name: string; r: DOMRect }[] = [];
+    const textBox = (el: Element) => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return range.getBoundingClientRect();
+    };
+    for (const entry of selectors) {
+      const text = entry.startsWith('text:');
+      const selector = text ? entry.slice(5) : entry;
+      document.querySelectorAll(selector).forEach((el, i) => {
+        const r = text ? textBox(el) : el.getBoundingClientRect();
+        // Hidden at this size (display: none)
+        if (r.width === 0 || r.height === 0) return;
+        boxes.push({ name: `${selector}[${i}]`, r });
+      });
+    }
+    const onScreen = (r: DOMRect) => r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1;
+    for (const { name, r } of boxes) {
+      if (!onScreen(r)) problems.push(`${name} is off screen`);
+    }
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i].r, b = boxes[j].r;
+        // Two panels of the same readout stack touch; only a real overlap counts
+        const overlap = Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1;
+        if (overlap) problems.push(`${boxes[i].name} overlaps ${boxes[j].name}`);
+      }
+    }
+    document.querySelectorAll('a[aria-label]').forEach(a => {
+      const r = a.getBoundingClientRect();
+      if (r.width === 0 || !onScreen(r)) problems.push(`link ${a.getAttribute('aria-label')} is not fully on screen`);
+    });
+    return problems;
+  }, selectors);
+}
+
+for (const [theme, selectors] of Object.entries(LAYOUT)) {
+  test(`the ${theme} theme fits every screen size without overlaps`, async ({ page }) => {
+    const problems: string[] = [];
+    for (const [width, height] of SIZES) {
+      await page.setViewportSize({ width, height });
+      await page.goto(`/?theme=${theme}`);
+      await expect(page.locator(`app-${theme}-theme`)).toBeVisible();
+      if (theme === 'skyrim') await expect(page.locator('app-skyrim-loading .caption')).not.toHaveText('You got a cat');
+      // Let the entrance animations finish and the web font arrive, both of which move things
+      await page.waitForTimeout(2500);
+      const check = async (what: string) => {
+        for (const p of await layoutProblems(page, selectors)) problems.push(`${width}x${height}${what}: ${p}`);
+      };
+      if (theme === 'mecha') {
+        // The episode titles differ in length; every card has to fit
+        const card = page.locator('app-title-card');
+        for (let episode = 0; episode < 8; episode++) {
+          await check(` (card "${await card.locator('.title').textContent()}")`);
+          await card.click();
+        }
+      } else {
+        await check('');
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+}

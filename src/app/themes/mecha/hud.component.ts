@@ -27,7 +27,8 @@ export class HudComponent implements AfterViewInit, OnDestroy {
   private readonly timer = viewChild.required<ElementRef<HTMLElement>>('timer');
   private readonly graph = viewChild.required<ElementRef<HTMLCanvasElement>>('graph');
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  private readonly start = performance.now();
+  // The first frame's time: the countdown starts when it's first drawn
+  private start?: number;
   private frameId?: number;
   private voteInterval?: number;
   private lastSync = 0;
@@ -36,7 +37,7 @@ export class HudComponent implements AfterViewInit, OnDestroy {
     this.voteInterval = window.setInterval(() => {
       if (!this.reducedMotion.matches) this.votes.set(CORES.map(() => Math.random() < 0.6));
     }, VOTE_MS);
-    this.frame(this.start);
+    this.frame(performance.now());
   }
 
   ngOnDestroy() {
@@ -51,6 +52,7 @@ export class HudComponent implements AfterViewInit, OnDestroy {
   // The timer and graph change every frame, so they're drawn straight into the DOM rather than
   // through change detection
   private frame = (now: number) => {
+    this.start ??= now;
     const still = this.reducedMotion.matches;
     const elapsed = still ? 0 : now - this.start;
     this.drawTimer(BATTERY_MS - (elapsed % BATTERY_MS));

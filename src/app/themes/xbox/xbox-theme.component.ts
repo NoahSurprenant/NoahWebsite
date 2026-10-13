@@ -4,6 +4,8 @@ import { ShaderCanvas } from '../shader-canvas';
 import { XBOX_SHADER } from './xbox-backdrop';
 
 const INTRO_MS = 1600;
+// The orb never grows past this fraction of the screen height
+const MAX_RADIUS = 0.24;
 
 /** The original Xbox dashboard's main menu: the glowing green orb and a column of gel buttons. */
 @Component({
@@ -15,28 +17,65 @@ const INTRO_MS = 1600;
 export class XboxThemeComponent implements AfterViewInit, OnDestroy {
   protected readonly name = NAME;
   protected readonly links = LINKS;
+  private readonly dashboard = viewChild.required<ElementRef<HTMLElement>>('dashboard');
   private readonly backdrop = viewChild.required<ElementRef<HTMLElement>>('backdrop');
+  private readonly heading = viewChild.required<ElementRef<HTMLElement>>('heading');
+  private readonly menu = viewChild.required<ElementRef<HTMLElement>>('menu');
+  private readonly hints = viewChild.required<ElementRef<HTMLElement>>('hints');
+  /** Where the orb goes. The shader draws it here; without WebGL, CSS does. */
+  private readonly orbSlot = viewChild.required<ElementRef<HTMLElement>>('orb');
   private shader?: ShaderCanvas;
+  // In the shader's units: screen heights, from the bottom left
+  private orb = { x: 0, y: 0, radius: 0 };
 
   ngAfterViewInit() {
-    const host = this.backdrop().nativeElement;
+    this.layout();
+    window.addEventListener('resize', this.layout);
+    // The name's height changes when its web font arrives
+    document.fonts?.ready.then(this.layout);
+
     const start = performance.now();
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.shader = new ShaderCanvas(host, XBOX_SHADER, () => {
-      const aspect = host.clientWidth / Math.max(host.clientHeight, 1);
-      const portrait = aspect < 1;
-      return {
-        // Where the CSS leaves room: left of the menu, or above it on portrait screens
-        u_orb: portrait ? [aspect * 0.5, 0.7] : [aspect * 0.3, 0.55],
-        u_radius: portrait ? Math.min(aspect * 0.32, 0.14) : Math.min(0.24, aspect * 0.15),
-        u_intro: still ? 1 : Math.min((performance.now() - start) / INTRO_MS, 1),
-      };
-    }, 12);
+    this.shader = new ShaderCanvas(this.backdrop().nativeElement, XBOX_SHADER, () => ({
+      u_orb: [this.orb.x, this.orb.y],
+      u_radius: this.orb.radius,
+      u_intro: still ? 1 : Math.min((performance.now() - start) / INTRO_MS, 1),
+    }), 12);
+    if (!this.shader.running) this.orbSlot().nativeElement.classList.add('fallback');
   }
 
   ngOnDestroy() {
+    window.removeEventListener('resize', this.layout);
     this.shader?.dispose();
   }
+
+  /**
+   * Fits the orb in the space the text leaves: below the name, above the button hints and left of
+   * the menu, or between the name and the menu on portrait screens.
+   */
+  readonly layout = () => {
+    const host = this.dashboard().nativeElement;
+    const width = host.clientWidth, height = host.clientHeight;
+    if (!height) return;
+    // offsetTop rather than the bounding box, which the swoop-in animations move
+    const heading = this.heading().nativeElement;
+    const top = heading.offsetTop + heading.offsetHeight;
+    const menu = this.menu().nativeElement.getBoundingClientRect();
+    const hostBox = host.getBoundingClientRect();
+    const portrait = width < height;
+    const right = portrait ? width : menu.left - hostBox.left;
+    const bottom = portrait ? menu.top - hostBox.top : this.hints().nativeElement.offsetTop;
+    const radius = Math.max(0, Math.min(right, bottom - top, height * MAX_RADIUS * 2) / 2 * 0.85);
+    const cx = right / 2, cy = (top + bottom) / 2;
+
+    this.orb = { x: cx / height, y: (height - cy) / height, radius: radius / height };
+    Object.assign(this.orbSlot().nativeElement.style, {
+      left: `${cx - radius}px`,
+      top: `${cy - radius}px`,
+      width: `${radius * 2}px`,
+      height: `${radius * 2}px`,
+    });
+  };
 
   /** Up and down move between the buttons, like the controller's d-pad. */
   protected onKeydown(event: KeyboardEvent) {

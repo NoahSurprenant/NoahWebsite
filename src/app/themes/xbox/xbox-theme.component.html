@@ -1,9 +1,10 @@
-<div class="dashboard">
+<div #dashboard class="dashboard">
     <div #backdrop class="backdrop" aria-hidden="true"></div>
+    <div #orb class="orb" aria-hidden="true"></div>
 
-    <h1 class="name">{{ name }}</h1>
+    <h1 #heading class="name">{{ name }}</h1>
 
-    <nav class="menu" (keydown)="onKeydown($event)">
+    <nav #menu class="menu" (keydown)="onKeydown($event)">
         @for (link of links; track link.id; let i = $index) {
         <a [href]="link.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="link.label" [style.--i]="i">
             <span>{{ link.short }}</span>
@@ -11,7 +12,7 @@
         }
     </nav>
 
-    <p class="buttons" aria-hidden="true">
+    <p #hints class="buttons" aria-hidden="true">
         <span class="a">A</span> Select
         <span class="b">B</span> Back
     </p>
