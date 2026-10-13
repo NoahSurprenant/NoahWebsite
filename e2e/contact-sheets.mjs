@@ -1,6 +1,7 @@
-// Puts the e2e layout test's screenshots (screenshots/<theme>/<width>x<height>.png) side by side,
-// one contact sheet per theme (screenshots/<theme>.png), so a PR's look can be reviewed at a
-// glance. CI uploads each sheet unzipped, which GitHub shows in the browser.
+// Puts the e2e layout test's screenshots (screenshots/<theme>/<n>-<device>-<width>x<height>.png)
+// side by side, one contact sheet per theme (screenshots/<theme>.png), so a PR's look can be
+// reviewed at a glance: computers on the first row, tablets on the second, phones on the third.
+// CI uploads each sheet unzipped, which GitHub shows in the browser.
 import { chromium } from '@playwright/test';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -15,20 +16,27 @@ const page = await browser.newPage({ viewport: { width: 1800, height: 600 } });
 
 for (const theme of themes) {
   const files = (await readdir(join(dir, theme))).filter(f => f.endsWith('.png'));
-  // Widest first
-  files.sort((a, b) => parseInt(b) - parseInt(a));
-  const shots = await Promise.all(files.map(async file => {
+  // In the test's order, the number at the front
+  files.sort((a, b) => parseInt(a) - parseInt(b));
+  const rows = new Map();
+  for (const file of files) {
+    // "5-phone-landscape-844x390.png" -> "Phone, landscape · 844×390", on the phones' row
+    const [, kind, orientation, size] = file.match(/^\d+-([a-z]+)(?:-([a-z]+))?-(\d+x\d+)\.png$/);
+    const caption = `${kind[0].toUpperCase()}${kind.slice(1)}${orientation ? `, ${orientation}` : ''} · ${size.replace('x', '×')}`;
+    const row = kind === 'desktop' || kind === 'laptop' ? 'computer' : kind;
     const data = (await readFile(join(dir, theme, file))).toString('base64');
-    return `<figure><img src="data:image/png;base64,${data}"><figcaption>${file.replace('.png', '')}</figcaption></figure>`;
-  }));
+    rows.set(row, [...(rows.get(row) ?? []), `<figure><img src="data:image/png;base64,${data}"><figcaption>${caption}</figcaption></figure>`]);
+  }
+  const shots = [...rows.values()].map(row => `<div class="row">${row.join('')}</div>`);
   await page.setContent(`<!doctype html>
     <style>
       body { margin: 0; padding: 24px; background: #222; color: #eee; font: 16px system-ui, sans-serif; width: fit-content; }
       h1 { margin: 0 0 16px; font-size: 24px; }
-      main { display: flex; flex-wrap: wrap; gap: 16px; max-width: 1752px; }
+      main { display: grid; gap: 24px; }
+      .row { display: flex; gap: 16px; }
       figure { margin: 0; }
       img { display: block; height: ${HEIGHT}px; outline: 1px solid #555; }
-      figcaption { margin-top: 4px; color: #aaa; }
+      figcaption { margin-top: 6px; color: #ddd; font-size: 18px; }
     </style>
     <h1>${theme}</h1>
     <main>${shots.join('')}</main>`);

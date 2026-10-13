@@ -139,7 +139,7 @@ jobs:
           body="$marker
           ### Screenshots
 
-          Every theme at 1920x1080, 1280x720, 1024x768, 768x1024, 844x390 and 360x640, as of $SHA:
+          Every theme on a desktop (1920x1080), laptop (1280x720), tablet in landscape (1024x768) and portrait (768x1024), and phone in landscape (844x390) and portrait (360x640), as of $SHA:
           [Skyrim]($SKYRIM) · [Terminal]($TERMINAL) · [Xbox]($XBOX) · [Mecha]($MECHA) · [all, full size (zip)]($ALL)
 
           Each theme opens as one picture in the browser (signed in to GitHub). Kept for 30 days."

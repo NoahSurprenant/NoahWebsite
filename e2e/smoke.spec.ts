@@ -176,9 +176,17 @@ test('the cog switches theme, puts it in the URL and remembers it', async ({ pag
   }
 });
 
-// Desktop, laptop, small laptop, tablet portrait, phone on its side, small phone. The "Activate
-// Windows" watermark (1920x1080) is a joke overlay on top of everything, so it's left out.
-const SIZES = [[1920, 1080], [1280, 720], [1024, 768], [768, 1024], [844, 390], [360, 640]] as const;
+// The screen sizes, by device; the name goes in each screenshot's file name, which the contact
+// sheets use for order and captions. The "Activate Windows" watermark (on the desktop) is a joke
+// overlay on top of everything, so the layout checks leave it out.
+const SIZES = [
+  ['desktop', 1920, 1080],
+  ['laptop', 1280, 720],
+  ['tablet-landscape', 1024, 768],
+  ['tablet-portrait', 768, 1024],
+  ['phone-landscape', 844, 390],
+  ['phone-portrait', 360, 640],
+] as const;
 
 // Per theme, the parts that must each be fully on screen and must not overlap one another.
 // "text:" measures an element's text rather than its box, for right-aligned text in a wide box.
@@ -233,7 +241,7 @@ function layoutProblems(page: Page, selectors: string[]) {
 for (const [theme, selectors] of Object.entries(LAYOUT)) {
   test(`the ${theme} theme fits every screen size without overlaps`, async ({ page }) => {
     const problems: string[] = [];
-    for (const [width, height] of SIZES) {
+    for (const [index, [device, width, height]] of SIZES.entries()) {
       await page.setViewportSize({ width, height });
       await page.goto(`/?theme=${theme}`);
       await expect(page.locator(`app-${theme}-theme`)).toBeVisible();
@@ -241,7 +249,7 @@ for (const [theme, selectors] of Object.entries(LAYOUT)) {
       // Let the entrance animations finish and the web font arrive, both of which move things
       await page.waitForTimeout(2500);
       // For review: CI puts these on the PR (e2e/contact-sheets.mjs)
-      await page.screenshot({ path: `screenshots/${theme}/${width}x${height}.png` });
+      await page.screenshot({ path: `screenshots/${theme}/${index + 1}-${device}-${width}x${height}.png` });
       const check = async (what: string) => {
         for (const p of await layoutProblems(page, selectors)) problems.push(`${width}x${height}${what}: ${p}`);
       };

@@ -35,7 +35,7 @@ Netlify builds and deploys the site. The build command and publish directory are
 
 GitHub Actions (`.github/workflows/ci.yml`) builds and tests every pull request and every push to `master`, and runs the browser smoke test in a separate job. Unit tests must cover 100% of the code (statements, branches, functions and lines; thresholds in `angular.json`), so a PR that adds untested code fails. jsdom has no WebGL, so the specs stand in for three.js's renderer and loaders with `vi.mock` and the fakes in `src/app/testing/`.
 
-The browser tests also check every theme at six screen sizes (1920x1080 down to a 360x640 phone) for anything off screen or overlapping, and screenshot each one. CI turns those into one picture per theme and links them in a comment on the PR (updated on each push) and in the run summary, so a PR's look can be reviewed without checking it out. Locally they land in `screenshots/`; `node e2e/contact-sheets.mjs` makes the per-theme pictures.
+The browser tests also check every theme at six screen sizes (desktop, laptop, tablet and phone, the last two both ways up) for anything off screen or overlapping, and screenshot each one. CI turns those into one picture per theme and links them in a comment on the PR (updated on each push) and in the run summary, so a PR's look can be reviewed without checking it out. Locally they land in `screenshots/`; `node e2e/contact-sheets.mjs` makes the per-theme pictures.
 
 ## Dependency updates
 
