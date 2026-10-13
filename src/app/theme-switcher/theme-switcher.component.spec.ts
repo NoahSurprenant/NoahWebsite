@@ -23,7 +23,7 @@ describe('ThemeSwitcherComponent', () => {
     const menu = el.querySelector<HTMLElement>('#theme-menu')!;
     // jsdom has no popover API
     menu.hidePopover = vi.fn();
-    const mecha = Array.from(el.querySelectorAll<HTMLButtonElement>('#theme-menu button')).find(b => b.textContent?.includes('Mecha'))!;
+    const mecha = Array.from(el.querySelectorAll<HTMLButtonElement>('#theme-menu button')).find(b => b.textContent?.includes('Neon Genesis'))!;
     mecha.click();
     await fixture.whenStable();
     expect(TestBed.inject(ThemeService).theme()).toBe('mecha');

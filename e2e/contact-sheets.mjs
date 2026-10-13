@@ -20,7 +20,7 @@ for (const theme of themes) {
   files.sort((a, b) => parseInt(a) - parseInt(b));
   const rows = new Map();
   for (const file of files) {
-    // "5-phone-landscape-844x390.png" -> "Phone, landscape · 844×390", on the phones' row
+    // "5-phone-landscape-820x300.png" -> "Phone, landscape · 820×300", on the phones' row
     const [, kind, orientation, size] = file.match(/^\d+-([a-z]+)(?:-([a-z]+))?-(\d+x\d+)\.png$/);
     const caption = `${kind[0].toUpperCase()}${kind.slice(1)}${orientation ? `, ${orientation}` : ''} · ${size.replace('x', '×')}`;
     const row = kind === 'desktop' || kind === 'laptop' ? 'computer' : kind;

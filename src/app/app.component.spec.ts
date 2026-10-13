@@ -77,7 +77,7 @@ describe('AppComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.cog')?.getAttribute('aria-label')).toBe('Change theme');
     const buttons = Array.from(compiled.querySelectorAll<HTMLButtonElement>('#theme-menu button'));
-    expect(buttons.map(b => b.textContent?.trim())).toEqual(['Skyrim', 'Terminal', 'Original Xbox', 'Mecha HUD']);
+    expect(buttons.map(b => b.textContent?.trim())).toEqual(['Skyrim', 'Terminal', 'Xbox', 'Neon Genesis']);
     expect(buttons.map(b => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false', 'false']);
 
     buttons[2].click();

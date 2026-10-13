@@ -11,6 +11,7 @@ describe('parseTheme', () => {
     expect(parseTheme(' Terminal ')).toBe('terminal');
     expect(parseTheme('eva')).toBe('mecha');
     expect(parseTheme('Anime')).toBe('mecha');
+    expect(parseTheme('neon-genesis')).toBe('mecha');
   });
 
   it('returns undefined for anything else', () => {

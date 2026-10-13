@@ -8,8 +8,8 @@ My personal website, built with Angular 22. It has several themes; the default i
 | --- | --- |
 | Skyrim loading screen (default) | https://noahsurprenant.com/ |
 | Terminal (try `help`) | https://noahsurprenant.com/?theme=terminal |
-| Original Xbox dashboard | https://noahsurprenant.com/?theme=xbox |
-| 90s mecha anime title card and HUD | https://noahsurprenant.com/?theme=mecha |
+| Xbox (the original dashboard) | https://noahsurprenant.com/?theme=xbox |
+| Neon Genesis (title card and HUD) | https://noahsurprenant.com/?theme=mecha |
 
 The cog in the top-left corner switches theme. A pick is remembered (localStorage) and put in the address bar, so the URL can be copied and sent. A `?theme=` link always wins over the remembered pick; unknown values fall back to it, then to Skyrim.
 

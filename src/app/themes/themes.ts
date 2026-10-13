@@ -2,8 +2,8 @@
 export const THEMES = [
   { id: 'skyrim', label: 'Skyrim', themeColor: '#000000' },
   { id: 'terminal', label: 'Terminal', themeColor: '#0a0f0a' },
-  { id: 'xbox', label: 'Original Xbox', themeColor: '#061a04' },
-  { id: 'mecha', label: 'Mecha HUD', themeColor: '#000000' },
+  { id: 'xbox', label: 'Xbox', themeColor: '#061a04' },
+  { id: 'mecha', label: 'Neon Genesis', themeColor: '#000000' },
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]['id'];
@@ -14,6 +14,7 @@ export const DEFAULT_THEME: ThemeId = THEMES[0].id;
 const ALIASES = new Map<string, ThemeId>([
   ['eva', 'mecha'],
   ['anime', 'mecha'],
+  ['neon-genesis', 'mecha'],
   ['term', 'terminal'],
   ['shell', 'terminal'],
   ['console', 'terminal'],

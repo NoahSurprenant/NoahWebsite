@@ -162,9 +162,11 @@
     .buttons { right: 0; left: 0; bottom: 24px; text-align: center; }
 }
 
+/* Short landscape screens (a phone on its side, browser bars and all): the name stays left of a
+   narrower menu, and the buttons shrink with the height so the hints fit below them */
 @media (max-height: 500px) and (min-aspect-ratio: 1/1) {
-    .name { top: 20px; left: 72px; }
-    .menu { gap: 10px; }
-    .menu a { padding: 8px 0; font-size: 20px; }
-    .buttons { bottom: 12px; }
+    .name { top: 16px; left: 72px; max-width: calc(58vw - 96px); font-size: min(3.4vw, 32px); }
+    .menu { top: calc(50% - 14px); right: 24px; gap: min(10px, 2.5vh); }
+    .menu a { width: 38vw; padding: min(8px, 2vh) 0; font-size: min(5.5vh, 20px); }
+    .buttons { right: 24px; bottom: 8px; font-size: 16px; }
 }

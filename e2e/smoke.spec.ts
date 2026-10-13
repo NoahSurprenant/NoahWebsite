@@ -184,7 +184,8 @@ const SIZES = [
   ['laptop', 1280, 720],
   ['tablet-landscape', 1024, 768],
   ['tablet-portrait', 768, 1024],
-  ['phone-landscape', 844, 390],
+  // A phone on its side with the browser's address and tab bars showing: little height is left
+  ['phone-landscape', 820, 300],
   ['phone-portrait', 360, 640],
 ] as const;
 
