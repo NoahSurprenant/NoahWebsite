@@ -102,25 +102,6 @@ input {
     caret-color: var(--fg);
 }
 
-.cursor {
-    display: inline-block;
-    width: 1ch;
-    height: 1.2em;
-    margin-left: -1ch;
-    vertical-align: text-bottom;
-    background: var(--fg);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .cursor {
-        animation: blink 1s steps(1) infinite;
-    }
-}
-
-@keyframes blink {
-    50% { opacity: 0; }
-}
-
 .hint {
     margin-top: 1em;
     color: var(--dim);

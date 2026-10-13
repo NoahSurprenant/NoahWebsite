@@ -25,14 +25,10 @@
 
         <label class="input-line">
             <span class="prompt">{{ prompt }}</span>
-            @if (ready()) {
             <input #input type="text" aria-label="Command (type help)" autocomplete="off" autocapitalize="off"
                 spellcheck="false" enterkeyhint="go" (keydown)="onKeydown($event)">
-            } @else {
-            <span>{{ typing() }}</span><span class="cursor"></span>
-            }
         </label>
-        @if (ready() && lines().length <= 4) {
+        @if (lines().length <= 4) {
         <p class="hint">Type <kbd>help</kbd> for commands.</p>
         }
     </div>

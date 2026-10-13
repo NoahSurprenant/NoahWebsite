@@ -5,7 +5,6 @@ import { TerminalThemeComponent } from './terminal-theme.component';
 
 describe('TerminalThemeComponent', () => {
   beforeEach(() => {
-    // Reduced motion: the boot commands run straight away instead of being typed out
     stubMatchMedia(REDUCED_MOTION);
     localStorage.clear();
   });

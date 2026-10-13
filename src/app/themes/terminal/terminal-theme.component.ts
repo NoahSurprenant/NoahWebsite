@@ -1,4 +1,4 @@
-import { afterRenderEffect, ChangeDetectionStrategy, Component, ElementRef, inject, OnDestroy, signal, viewChild } from '@angular/core';
+import { afterNextRender, afterRenderEffect, ChangeDetectionStrategy, Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { LINKS, NAME } from '../../links';
 import { ThemeService } from '../theme.service';
 import { parseTheme, THEMES } from '../themes';
@@ -11,10 +11,8 @@ export type Line =
 
 export const PROMPT = 'guest@noahsurprenant.com:~$';
 
-// Typed out on load, as if someone had just run them
+// Already run when the page opens, so the links are there without typing anything
 const BOOT_COMMANDS = ['whoami', 'ls links/'];
-const TYPE_MS = 70;
-const PAUSE_MS = 400;
 
 const HELP = `Commands:
   whoami          who this site belongs to
@@ -30,64 +28,33 @@ const HELP = `Commands:
   styleUrls: ['./terminal-theme.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TerminalThemeComponent implements OnDestroy {
+export class TerminalThemeComponent {
   protected readonly prompt = PROMPT;
   protected readonly name = NAME;
   protected readonly links = LINKS;
   private readonly themes = inject(ThemeService);
 
   readonly lines = signal<Line[]>([]);
-  /** What's been "typed" of the boot command in progress */
-  protected readonly typing = signal('');
-  /** False until the boot commands have run */
-  protected readonly ready = signal(false);
 
   private readonly screen = viewChild.required<ElementRef<HTMLElement>>('screen');
-  private readonly input = viewChild<ElementRef<HTMLInputElement>>('input');
+  private readonly input = viewChild.required<ElementRef<HTMLInputElement>>('input');
   private readonly history: string[] = [];
   private historyIndex = 0;
-  private timeout?: number;
 
   constructor() {
     afterRenderEffect(() => {
       this.lines();
-      this.typing();
       const screen = this.screen().nativeElement;
       screen.scrollTop = screen.scrollHeight;
     });
-    // Once the prompt appears, put the cursor in it. Only where there's a real keyboard: on a phone
-    // focusing would pop up the on-screen one.
-    afterRenderEffect(() => {
-      if (this.ready() && window.matchMedia('(pointer: fine)').matches) {
-        this.input()?.nativeElement.focus({ preventScroll: true });
+    // Put the cursor in the prompt. Only where there's a real keyboard: on a phone focusing would
+    // pop up the on-screen one.
+    afterNextRender(() => {
+      if (window.matchMedia('(pointer: fine)').matches) {
+        this.input().nativeElement.focus({ preventScroll: true });
       }
     });
-    this.boot();
-  }
-
-  ngOnDestroy() {
-    window.clearTimeout(this.timeout);
-  }
-
-  private async boot() {
-    // With reduced motion the commands appear already run
-    const animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    for (const command of BOOT_COMMANDS) {
-      if (animate) {
-        await this.wait(PAUSE_MS);
-        for (let i = 1; i <= command.length; i++) {
-          this.typing.set(command.slice(0, i));
-          await this.wait(TYPE_MS);
-        }
-        this.typing.set('');
-      }
-      this.run(command, false);
-    }
-    this.ready.set(true);
-  }
-
-  private wait(ms: number) {
-    return new Promise<void>(resolve => this.timeout = window.setTimeout(resolve, ms));
+    for (const command of BOOT_COMMANDS) this.run(command, false);
   }
 
   /** Runs a command line and prints what it outputs. */
@@ -178,6 +145,6 @@ export class TerminalThemeComponent implements OnDestroy {
   /** Clicking the screen puts the cursor on the prompt, unless the click was selecting text or a link. */
   protected focusInput(event: MouseEvent) {
     if ((event.target as HTMLElement).closest('a') || window.getSelection()?.toString()) return;
-    this.input()?.nativeElement.focus({ preventScroll: true });
+    this.input().nativeElement.focus({ preventScroll: true });
   }
 }
