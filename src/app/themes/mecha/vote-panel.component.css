@@ -1,0 +1,79 @@
+:host {
+    /* A computer box: 40px, growing with big screens like the rest of the HUD */
+    --box: clamp(40px, 2.6vw, 60px);
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+}
+
+/* Orange rounded tags, like the display's place names */
+.tag {
+    position: relative;
+    margin: 0;
+    padding: 3px 12px;
+    border: 2px solid #ff7a00;
+    border-radius: 8px;
+    background: #000;
+    color: #ff7a00;
+}
+
+/* The green line wiring the header tag to the cluster */
+.tag:first-child::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: calc(50% - 1px);
+    width: 2px;
+    height: 12px;
+    background: #3dff6e;
+}
+
+.cluster {
+    display: grid;
+    grid-template: "one name three" auto ". two ." auto / var(--box) auto var(--box);
+    gap: 4px 8px;
+    align-items: center;
+    justify-items: center;
+}
+
+/* A computer: orange-outlined, lit pale cyan when it approves, dark and red when it denies */
+.box {
+    display: grid;
+    place-items: center;
+    width: var(--box);
+    height: calc(var(--box) * 0.9);
+    border: 2px solid #7fe3ff;
+    border-radius: 4px;
+    background: #bff4ff;
+    box-shadow: 0 0 12px rgb(127 227 255 / 60%);
+    color: #002a33;
+    font: 900 calc(var(--box) * 0.6)/1 ui-monospace, Menlo, Consolas, monospace;
+}
+
+.box.deny {
+    border-color: #e3001b;
+    background: #200000;
+    box-shadow: none;
+    color: #e3001b;
+}
+
+.name {
+    color: #ff7a00;
+    line-height: 1.1;
+    text-align: center;
+}
+
+.result.deny {
+    border-color: #e3001b;
+    color: #e3001b;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .result.deny {
+        animation: blink 0.8s steps(1) infinite;
+    }
+}
+
+@keyframes blink {
+    50% { opacity: 0.3; }
+}

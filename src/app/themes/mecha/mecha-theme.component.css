@@ -1,0 +1,152 @@
+:host {
+    --orange: #ff7a00;
+    --red: #e3001b;
+    display: block;
+    height: 100%;
+    background: #000;
+}
+
+.screen {
+    position: relative;
+    display: grid;
+    /* minmax: the card is laid out at its unscaled size, wider than it looks */
+    grid-template: "card hud" 1fr "console console" auto / minmax(0, 1fr) auto;
+    gap: 24px;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 80px 64px 64px clamp(24px, 8vw, 120px);
+    overflow: hidden;
+}
+
+/* Faint hex grid with the odd cell lighting up, behind everything */
+.grid {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(60deg, transparent 49.5%, rgb(255 122 0 / 22%) 50%, transparent 50.5%) 0 0 / 52px 90px,
+        linear-gradient(-60deg, transparent 49.5%, rgb(255 122 0 / 22%) 50%, transparent 50.5%) 0 0 / 52px 90px,
+        linear-gradient(90deg, transparent 49%, rgb(255 122 0 / 12%) 50%, transparent 51%) 0 0 / 52px 90px;
+}
+
+.grid i {
+    position: absolute;
+    width: 46px;
+    aspect-ratio: 1.1547;
+    clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+    background: var(--orange);
+    opacity: 0;
+}
+
+/* Sized to fit beside the readouts */
+.card { grid-area: card; position: relative; --card-size: clamp(48px, 7.5vw, 160px); }
+.hud { grid-area: hud; position: relative; justify-self: end; }
+
+.console {
+    grid-area: console;
+    position: relative;
+    align-self: end;
+    justify-self: end;
+    border: 2px solid var(--orange);
+    background: #000;
+    color: var(--orange);
+    font: 600 16px/1.2 ui-monospace, Menlo, Consolas, monospace;
+}
+
+.console-header {
+    margin: 0;
+    padding: 6px 12px;
+    background: var(--orange);
+    color: #000;
+    letter-spacing: 0.1em;
+}
+
+.console-header span {
+    margin-right: 0.6em;
+    color: var(--red);
+}
+
+.console ul {
+    display: flex;
+    gap: 12px;
+    margin: 0;
+    padding: 16px;
+    list-style: none;
+}
+
+/* Hexagon buttons; the one under the pointer flashes red */
+.console a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 104px;
+    aspect-ratio: 1.1547;
+    clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+    background: var(--orange);
+    color: #000;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.console a:hover,
+.console a:focus-visible {
+    background: var(--red);
+    color: #fff;
+}
+
+.console fa-icon {
+    font-size: 26px;
+}
+
+.banner {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .grid i { animation: flash 4s steps(1) infinite; }
+    .console a:hover,
+    .console a:focus-visible { animation: alarm 0.5s steps(1) infinite; }
+}
+
+@keyframes flash {
+    0% { opacity: 0.5; }
+    6% { opacity: 0.15; }
+    12% { opacity: 0; }
+}
+
+@keyframes alarm {
+    50% { background: var(--orange); color: #000; }
+}
+
+/* Narrower screens: everything stacks, and only the battery readout stays */
+@media (max-width: 1100px) {
+    .screen { grid-template: "card" auto "hud" 1fr "console" auto / minmax(0, 1fr); }
+    /* By height too, so a two-line title still leaves room for the readout and links */
+    .card { --card-size: clamp(48px, min(10vw, 9vh), 160px); }
+    .hud { justify-self: start; }
+}
+
+@media (max-width: 600px) {
+    .screen { padding: 76px 16px 56px; }
+    .console { justify-self: stretch; }
+    .console ul { justify-content: space-between; }
+}
+
+/* Phones either way up: a smaller console */
+@media (max-width: 600px), (max-height: 500px) and (min-aspect-ratio: 1/1) {
+    .console-header { font-size: 12px; }
+    .console ul { gap: 4px; padding: 10px; }
+    .console a { width: 72px; font-size: 10px; }
+    .console fa-icon { font-size: 20px; }
+}
+
+/* Short landscape screens (a phone on its side): the card and links side by side, no readouts */
+@media (max-height: 500px) and (min-aspect-ratio: 1/1) {
+    .screen { grid-template: "card console" 1fr / minmax(0, 1fr) auto; padding: 60px 24px 48px; }
+    .card { --card-size: clamp(32px, 7vw, 60px); }
+    .hud { display: none; }
+}

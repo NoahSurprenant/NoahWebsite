@@ -1,0 +1,12 @@
+<!-- A native popover: the browser handles opening, Escape, clicks outside and the top layer -->
+<button class="cog" type="button" popovertarget="theme-menu" aria-label="Change theme" title="Change theme">
+    <fa-icon [icon]="faGear"></fa-icon>
+</button>
+
+<div #menu id="theme-menu" class="menu" popover role="group" aria-label="Themes">
+    @for (theme of themes; track theme.id) {
+    <button type="button" [attr.aria-pressed]="service.theme() === theme.id" (click)="select(theme.id)">
+        {{ theme.label }}
+    </button>
+    }
+</div>

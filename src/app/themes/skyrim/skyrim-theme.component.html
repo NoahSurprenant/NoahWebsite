@@ -1,0 +1,19 @@
+<!-- three.js is most of the bundle, so the scene is lazy: the name and links paint first.
+     "on immediate" starts fetching the chunk right after that first render. -->
+@defer (on immediate) {
+<app-skyrim-loading></app-skyrim-loading>
+} @placeholder {
+<div class="scene-placeholder"></div>
+}
+
+<ul class="list">
+    <li class="name">{{ name }}</li>
+
+    @for (link of links; track link.id) {
+    <li>
+        <a [href]="link.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="link.label">
+            <fa-icon [icon]="link.icon"></fa-icon>
+        </a>
+    </li>
+    }
+</ul>

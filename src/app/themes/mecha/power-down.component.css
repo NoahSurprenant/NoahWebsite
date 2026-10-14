@@ -1,0 +1,66 @@
+:host {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+}
+
+:host(.down) {
+    background: rgb(0 0 0 / 88%);
+}
+
+:host(.external) {
+    background: rgb(0 0 0 / 50%);
+}
+
+p {
+    margin: 0;
+    text-align: center;
+}
+
+.limit {
+    color: #e3001b;
+    font: 900 clamp(28px, 7vw, 96px)/1 "Times New Roman", Times, serif;
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 24px rgb(227 0 27 / 70%);
+}
+
+small {
+    display: block;
+    margin-top: 0.6em;
+    color: #ff7a00;
+    font: 600 clamp(12px, 1.6vw, 20px) ui-monospace, Menlo, Consolas, monospace;
+    letter-spacing: 0.15em;
+}
+
+.restored {
+    padding: 0.3em 0.6em;
+    border: 3px solid;
+    background: #000;
+    color: #3dff6e;
+    font: 600 clamp(18px, 3.5vw, 44px) ui-monospace, Menlo, Consolas, monospace;
+    letter-spacing: 0.1em;
+}
+
+/* The lights stutter on the way down, and the warning blinks */
+@media (prefers-reduced-motion: no-preference) {
+    :host(.down) {
+        animation: power-down 0.7s steps(1);
+    }
+    .limit {
+        animation: blink 0.8s steps(1) 0.7s infinite;
+    }
+}
+
+@keyframes power-down {
+    0% { background: rgb(0 0 0 / 0%); }
+    15% { background: rgb(0 0 0 / 60%); }
+    30% { background: rgb(0 0 0 / 10%); }
+    45% { background: rgb(0 0 0 / 80%); }
+    60% { background: rgb(0 0 0 / 30%); }
+}
+
+@keyframes blink {
+    50% { opacity: 0.3; }
+}

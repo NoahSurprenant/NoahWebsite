@@ -1,0 +1,35 @@
+<div class="window">
+    <div class="title-bar" aria-hidden="true">guest&#64;noahsurprenant.com: ~</div>
+
+    <div #screen class="screen" (click)="focusInput($event)">
+        @for (line of lines(); track $index) {
+            @switch (line.kind) {
+                @case ('command') {
+                <div><span class="prompt">{{ prompt }}</span> {{ line.text }}</div>
+                }
+                @case ('name') {
+                <h1 class="name">{{ name }}</h1>
+                }
+                @case ('links') {
+                <ul class="links">
+                    @for (link of links; track link.id) {
+                    <li><a [href]="link.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="link.label">{{ link.id }}</a></li>
+                    }
+                </ul>
+                }
+                @default {
+                <pre>{{ line.text }}</pre>
+                }
+            }
+        }
+
+        <label class="input-line">
+            <span class="prompt">{{ prompt }}</span>
+            <input #input type="text" aria-label="Command (type help)" autocomplete="off" autocapitalize="off"
+                spellcheck="false" enterkeyhint="go" (keydown)="onKeydown($event)">
+        </label>
+        @if (lines().length <= 4) {
+        <p class="hint">Type <kbd>help</kbd> for commands.</p>
+        }
+    </div>
+</div>

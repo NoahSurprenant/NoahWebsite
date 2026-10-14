@@ -1,0 +1,28 @@
+:host {
+    display: block;
+    overflow: hidden;
+    border-block: 4px solid;
+    border-image: repeating-linear-gradient(-45deg, #e3001b 0 10px, #000 10px 20px) 4;
+    background: #e3001b;
+    color: #000;
+    font: 900 18px/28px "Times New Roman", Times, serif;
+    letter-spacing: 0.15em;
+    white-space: nowrap;
+}
+
+span {
+    display: inline-block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    span { animation: scroll 40s linear infinite; }
+}
+
+@keyframes scroll {
+    to { transform: translateX(-50%); }
+}
+
+/* Phones either way up */
+@media (max-width: 600px), (max-height: 500px) and (min-aspect-ratio: 1/1) {
+    :host { font-size: 14px; line-height: 22px; }
+}

@@ -1,0 +1,8 @@
+<p class="tag">DECISION SYSTEM</p>
+<div class="cluster">
+    @for (box of boxes; track box.n) {
+    <span class="box" [style.grid-area]="box.area" [class.deny]="!votes()[box.n - 1]">{{ box.n }}</span>
+    }
+    <span class="name">CORE<br>01</span>
+</div>
+<p class="tag result" [class.deny]="!approved()">RESOLUTION: {{ approved() ? 'APPROVED' : 'REJECTED' }}</p>

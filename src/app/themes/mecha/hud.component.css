@@ -1,0 +1,85 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15em;
+    /* Grows with big screens, everything inside in em */
+    width: clamp(340px, 22vw, 520px);
+    font: 600 clamp(12px, 0.78vw, 18px)/1.2 ui-monospace, Menlo, Consolas, monospace;
+    letter-spacing: 0.08em;
+}
+
+p {
+    margin: 0;
+}
+
+.panel {
+    padding: 8px 10px;
+    border: 1px solid #ff7a00;
+    background: rgb(0 0 0 / 70%);
+    color: #ff7a00;
+}
+
+.label {
+    margin-bottom: 6px;
+}
+
+.modes span {
+    margin-right: 8px;
+    padding: 1px 6px;
+    border: 1px solid #ff7a00;
+    opacity: 0.4;
+}
+
+.modes .on {
+    background: #e3001b;
+    border-color: #e3001b;
+    color: #000;
+    opacity: 1;
+}
+
+/* Segment-display style digits */
+.timer {
+    margin-top: 4px;
+    color: #ffb000;
+    font-size: 3.65em;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    transform: skewX(-8deg);
+    text-shadow: 0 0 10px rgb(255 140 0 / 70%);
+}
+
+.timer.low {
+    color: #e3001b;
+    text-shadow: 0 0 10px rgb(227 0 27 / 80%);
+}
+
+.value {
+    float: right;
+    color: #3dff6e;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 7.5em;
+}
+
+/* Shorter screens (most laptops): the waveforms make way for the vote and the links */
+@media (max-height: 820px) {
+    .sync { display: none; }
+}
+
+@media (max-width: 1100px) {
+    :host { width: min(340px, 100%); }
+    .sync, .vote { display: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .timer.low {
+        animation: blink 0.8s steps(1) infinite;
+    }
+}
+
+@keyframes blink {
+    50% { opacity: 0.25; }
+}

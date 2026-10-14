@@ -4,6 +4,10 @@
    the only weight the page uses. The build copies the file into media/ with a content hash. */
 @import "@fontsource/roboto/latin-400.css";
 
+/* Orbitron (SIL Open Font License), the Xbox theme's lettering, from the pinned @fontsource/orbitron
+   package, Latin 600 only. Browsers only download it when the Xbox theme shows. */
+@import "@fontsource/orbitron/latin-600.css";
+
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
 html, body, app-root, .app-frame {
@@ -38,4 +42,36 @@ a {
 /* But I still want the mouse do be a pointer over links */
 a:hover {
     cursor: pointer;
+}
+
+/* The theme cog and its menu (app-theme-switcher), coloured to match each theme. ThemeService sets
+   <html data-theme>. */
+:root {
+    --switcher-fg: #fff;
+    --switcher-bg: rgb(0 0 0 / 85%);
+    --switcher-accent: #fff;
+    --switcher-font: jost, Roboto, sans-serif;
+}
+
+[data-theme="terminal"] {
+    --switcher-fg: #3dff6e;
+    --switcher-bg: #0a0f0a;
+    --switcher-accent: #3dff6e;
+    --switcher-font: ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+    --switcher-radius: 0;
+}
+
+[data-theme="xbox"] {
+    --switcher-fg: #e6ffc8;
+    --switcher-bg: rgb(11 41 5 / 92%);
+    --switcher-accent: #8cf04a;
+    --switcher-radius: 16px;
+}
+
+[data-theme="mecha"] {
+    --switcher-fg: #ff7a00;
+    --switcher-bg: #000;
+    --switcher-accent: #ff7a00;
+    --switcher-font: ui-monospace, Menlo, Consolas, monospace;
+    --switcher-radius: 0;
 }
