@@ -17,7 +17,17 @@ describe('TitleCardComponent', () => {
     card.episode.set(2);
     await fixture.whenStable();
     expect(el.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim())
-      .toBe(`NOAH SURPRENANT EPISODE:03 ${EPISODES[2]}`);
+      .toBe('NOAH SURPRENANT EPISODE:03 A Merge Request');
+  });
+
+  it('numbers each card after the real episode it riffs on, in order, ending with the film', () => {
+    const numbers = EPISODES.map(e => e.number);
+    expect(numbers[0]).toBe('01');
+    expect(numbers).toContain('22');
+    expect(numbers.at(-1)).toBe("26'");
+    // In the show's order, and each only once
+    expect(numbers.slice(0, -1).map(Number)).toEqual([...numbers.slice(0, -1).map(Number)].sort((a, b) => a - b));
+    expect(new Set(numbers).size).toBe(numbers.length);
   });
 
   it('cuts to the next card every few seconds, and wraps around', async () => {

@@ -255,10 +255,14 @@ for (const [theme, selectors] of Object.entries(LAYOUT)) {
         for (const p of await layoutProblems(page, selectors)) problems.push(`${width}x${height}${what}: ${p}`);
       };
       if (theme === 'mecha') {
-        // The episode titles differ in length; every card has to fit
+        // The episode titles differ in length; every card has to fit. Click through them all,
+        // until the first comes round again.
         const card = page.locator('app-title-card');
-        for (let episode = 0; episode < 8; episode++) {
-          await check(` (card "${await card.locator('.title').textContent()}")`);
+        const first = await card.locator('.title').textContent();
+        for (let shown = 0; shown < 40; shown++) {
+          const title = await card.locator('.title').textContent();
+          if (shown > 0 && title === first) break;
+          await check(` (card "${title}")`);
           await card.click();
         }
       } else {

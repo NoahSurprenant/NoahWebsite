@@ -1,16 +1,33 @@
 import { ChangeDetectionStrategy, Component, computed, OnDestroy, signal } from '@angular/core';
 import { NAME } from '../../links';
 
-// Next-episode title cards: one cuts to the next every few seconds
+// Next-episode title cards, each a riff on the real episode with that number, in the show's order.
+// One cuts to the next every few seconds. 26' is the film's retelling of the last episode.
 export const EPISODES = [
-  'Bug Attack',
-  'The Beast (Monolith)',
-  "Hedgehog's Dilemma: Tabs or Spaces",
-  'The Day the Cluster Stood Still',
-  'Prod Strikes!',
-  'Dependency Injection',
-  "Don't Deploy on Friday.",
-  'The End of Legacy Code',
+  { number: '01', title: 'Bug Attack' },
+  { number: '02', title: 'The Beast (Monolith)' },
+  { number: '03', title: 'A Merge Request' },
+  { number: '04', title: "Hedgehog's Dilemma: Tabs or Spaces" },
+  { number: '05', title: 'Release I' },
+  { number: '06', title: 'Release II' },
+  { number: '07', title: 'A Human Review' },
+  { number: '08', title: 'Prod Strikes!' },
+  { number: '09', title: 'Both of You, Pair Program Like You Want to Ship!' },
+  { number: '10', title: 'Logdiver' },
+  { number: '11', title: 'The Day the Cluster Stood Still' },
+  { number: '12', title: 'She said, "Don\'t make others suffer for your personal tech debt."' },
+  { number: '14', title: 'Weaving a Git History' },
+  { number: '16', title: 'Splitting of the Monolith' },
+  { number: '17', title: 'Fourth Replica' },
+  { number: '19', title: 'Dependency Injection' },
+  { number: '20', title: 'Weaving a Git History 2: rebase stage' },
+  { number: '21', title: 'He was aware that he was still a junior' },
+  { number: '22', title: "Don't Deploy on Friday." },
+  { number: '23', title: 'Release III' },
+  { number: '24', title: 'The Beginning and the End, or "Knockin\' on Port 443"' },
+  { number: '25', title: 'Do you LGTM?' },
+  { number: '26', title: 'Take Care of Your Server' },
+  { number: "26'", title: 'The End of Legacy Code' },
 ];
 const CARD_MS = 8000;
 
@@ -30,10 +47,7 @@ export class TitleCardComponent implements OnDestroy {
 
   readonly episode = signal(Math.floor(Math.random() * EPISODES.length));
   // In a list of one so the card is rebuilt, and its cut-in animations replay, on every change
-  protected readonly card = computed(() => [{
-    number: String(this.episode() + 1).padStart(2, '0'),
-    title: EPISODES[this.episode()],
-  }]);
+  protected readonly card = computed(() => [EPISODES[this.episode()]]);
 
   private interval = window.setInterval(() => this.next(), CARD_MS);
 
