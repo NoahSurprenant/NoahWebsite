@@ -1,6 +1,6 @@
-// The dashboard's backdrop: green, seen from inside a tunnel of polygon mesh that slowly drifts
-// towards you, and the orb, glowing yellow-green with translucent petals turning around it. Units
-// are screen heights, origin bottom left.
+// The dashboard's backdrop: green, as if from inside a globe ruled with longitude and latitude
+// lines and covered in a mesh of irregular cells, and the orb, glowing yellow-green with translucent
+// petals turning around it. Units are screen heights, origin bottom left.
 export const XBOX_SHADER = `
 precision highp float;
 uniform vec2 u_resolution;
@@ -10,17 +10,20 @@ uniform float u_radius;  // orb radius
 uniform float u_intro;   // 0 to 1 over the first moments: the orb swells in
 
 const float PI = 3.14159265;
-// Mesh cells around the tunnel, and along it per unit of log distance
-const float AROUND = 38.0;
-const float ALONG = 5.5;
+// How wide the view is, across the screen's longer side: a wide-angle (fisheye) lens, which is what
+// makes lines away from the middle bow outwards
+const float FOV = 2.0;
+// Globe lines every 10 degrees; mesh cells about 4 degrees across, so this many around
+const float GLOBE_STEP = PI / 18.0;
+const float CELLS_AROUND = 90.0;
 
 vec2 hash2(vec2 p) {
   p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
   return fract(sin(p) * 43758.5453);
 }
 
-// Distance to the nearest cell edge of a Voronoi mesh (Inigo Quilez's two-pass method). Cells
-// wrap around the tunnel: x is taken modulo AROUND.
+// Distance to the nearest edge of a mesh of irregular cells (a Voronoi diagram, by Inigo Quilez's
+// two-pass method), in cell units. Cells wrap around the globe: x is taken modulo CELLS_AROUND.
 float meshEdge(vec2 x) {
   vec2 n = floor(x), f = fract(x);
   vec2 mg, mr;
@@ -29,8 +32,8 @@ float meshEdge(vec2 x) {
   for (int i = -1; i <= 1; i++) {
     vec2 g = vec2(float(i), float(j));
     vec2 cell = n + g;
-    cell.x = mod(cell.x, AROUND);
-    vec2 r = g + 0.15 + 0.7 * hash2(cell) - f;
+    cell.x = mod(cell.x, CELLS_AROUND);
+    vec2 r = g + 0.2 + 0.6 * hash2(cell) - f;
     float d = dot(r, r);
     if (d < md) { md = d; mr = r; mg = g; }
   }
@@ -39,8 +42,8 @@ float meshEdge(vec2 x) {
   for (int i = -2; i <= 2; i++) {
     vec2 g = mg + vec2(float(i), float(j));
     vec2 cell = n + g;
-    cell.x = mod(cell.x, AROUND);
-    vec2 r = g + 0.15 + 0.7 * hash2(cell) - f;
+    cell.x = mod(cell.x, CELLS_AROUND);
+    vec2 r = g + 0.2 + 0.6 * hash2(cell) - f;
     if (dot(mr - r, mr - r) > 0.00001) md = min(md, dot(0.5 * (mr + r), normalize(r - mr)));
   }
   return md;
@@ -50,16 +53,32 @@ void main() {
   vec2 uv = gl_FragCoord.xy / u_resolution.y;
   float t = u_time;
 
-  // The tunnel, centred a little right of the orb, as on the dashboard
-  vec2 p = uv - (u_orb + vec2(0.18, 0.02));
-  float r = length(p);
-  float a = atan(p.y, p.x);
-  vec2 tunnel = vec2((a / (2.0 * PI) + 0.5) * AROUND, log(r) * ALONG - t * 0.12);
-  float edge = meshEdge(tunnel);
-  // The edge distance is in cell units; a cell's size on screen grows with r
-  float lines = 1.0 - smoothstep(0.0007, 0.0019, edge * r / ALONG);
-  vec3 col = mix(vec3(0.03, 0.15, 0.02), vec3(0.09, 0.30, 0.05), smoothstep(0.1, 1.1, r));
-  col += vec3(0.30, 0.75, 0.18) * lines * smoothstep(0.08, 0.5, r) * 0.45;
+  // Standing at the centre of a globe, looking at its equator through a wide-angle lens: the
+  // poles are above and below the screen, so the longitude lines run top to bottom, bowing out
+  // towards the sides, and the latitude lines curve gently. Straightest in the middle.
+  vec2 s = (gl_FragCoord.xy - 0.5 * u_resolution) / max(u_resolution.x, u_resolution.y);
+  float theta = length(s) * FOV;
+  vec2 across = s / max(length(s), 1e-5);
+  vec3 dir = vec3(sin(theta) * across, -cos(theta));
+  // The globe turns slowly
+  float lon = atan(dir.x, -dir.z) + t * 0.025;
+  float lat = asin(clamp(dir.y, -1.0, 1.0));
+  // About a pixel, as an angle
+  float px = FOV / max(u_resolution.x, u_resolution.y);
+
+  // The globe lines, as angles on the sphere: longitude lines get closer towards the poles
+  float latLine = abs(fract(lat / GLOBE_STEP + 0.5) - 0.5) * GLOBE_STEP;
+  float lonLine = abs(fract(lon / GLOBE_STEP + 0.5) - 0.5) * GLOBE_STEP * cos(lat);
+  float globeLines = 1.0 - smoothstep(px * 0.6, px * 1.8, min(latLine, lonLine));
+
+  // The mesh, on the same globe
+  float cell = 2.0 * PI / CELLS_AROUND;
+  float meshLines = 1.0 - smoothstep(px * 0.4, px * 1.3, meshEdge(vec2(lon, lat) / cell) * cell * cos(lat));
+
+  // Darker in the middle, greener towards the edges
+  vec3 col = mix(vec3(0.02, 0.10, 0.015), vec3(0.06, 0.22, 0.04), smoothstep(0.05, 0.65, length(s)));
+  col += vec3(0.34, 0.80, 0.22) * globeLines * 0.32;
+  col += vec3(0.24, 0.62, 0.15) * meshLines * 0.26;
 
   // The orb
   float radius = u_radius * (u_intro * u_intro * (3.0 - 2.0 * u_intro));

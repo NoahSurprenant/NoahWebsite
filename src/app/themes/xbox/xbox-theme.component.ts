@@ -37,6 +37,11 @@ export class XboxThemeComponent implements AfterViewInit, OnDestroy {
   ngAfterViewInit() {
     this.layout();
     window.addEventListener('resize', this.layout);
+    // The console starts with the first item selected. Only with a mouse: on a phone, focus would
+    // show for no reason, as nothing there is selected until it's tapped.
+    if (window.matchMedia('(pointer: fine)').matches) {
+      this.menu().nativeElement.querySelector('a')?.focus({ preventScroll: true });
+    }
     // The name's height changes when its web font arrives
     document.fonts?.ready.then(this.layout);
 
@@ -83,6 +88,14 @@ export class XboxThemeComponent implements AfterViewInit, OnDestroy {
       height: `${radius * 2}px`,
     });
   };
+
+  /**
+   * The pointer takes the keyboard focus with it, which is what lights an item: so the item under
+   * the pointer and the one Enter opens are always the same.
+   */
+  protected hover(event: MouseEvent) {
+    (event.currentTarget as HTMLElement).focus({ preventScroll: true });
+  }
 
   /** Up and down move between the buttons, like the controller's d-pad. */
   protected onKeydown(event: KeyboardEvent) {

@@ -4,11 +4,12 @@
 
     <h1 #heading class="name">{{ name }}</h1>
 
-    <!-- Each item: a glossy pod on an arc around the orb, wired to a bar. The first is selected
-         until another is hovered or focused, as on the console. -->
+    <!-- Each item: a glossy pod on an arc around the orb, wired to a bar. The lit one is the one
+         with the keyboard focus, and the pointer moves the focus, so there's only ever one. -->
     <nav #menu class="menu" (keydown)="onKeydown($event)">
         @for (link of links; track link.id; let i = $index) {
-        <a [href]="link.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="link.label" [style.--i]="i" [style.--arc]="arc[i]">
+        <a [href]="link.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="link.label" [style.--i]="i" [style.--arc]="arc[i]"
+            (mouseenter)="hover($event)">
             <span class="pod"></span>
             <span class="bar"><span>{{ link.short }}</span></span>
         </a>

@@ -109,6 +109,41 @@ describe('XboxThemeComponent', () => {
     expect(orb.classList.contains('fallback')).toBe(true);
   });
 
+  it('starts with the first item selected (focused) where there is a mouse', async () => {
+    stubMatchMedia('(pointer: fine)');
+    fakeCanvas();
+    manualFrames();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const fixture = TestBed.createComponent(XboxThemeComponent);
+    const el = fixture.nativeElement as HTMLElement;
+    // On the page before its first render, so it can take the focus
+    document.body.appendChild(el);
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(el.querySelector('.menu a'));
+    fixture.destroy();
+    el.remove();
+  });
+
+  it('selects nothing on a phone until something is tapped', async () => {
+    stubMatchMedia();
+    const { el } = await create();
+    document.body.appendChild(el);
+    expect(el.contains(document.activeElement)).toBe(false);
+    el.remove();
+  });
+
+  it('moves the selection (the focus) to whatever the pointer is over, so only one is ever lit', async () => {
+    stubMatchMedia();
+    const { el } = await create();
+    document.body.appendChild(el);
+    const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('.menu a'));
+    links[0].focus();
+    links[2].dispatchEvent(new MouseEvent('mouseenter'));
+    expect(document.activeElement).toBe(links[2]);
+    expect(el.querySelectorAll('.menu a:focus').length).toBe(1);
+    el.remove();
+  });
+
   it('moves between the buttons with the arrow keys, wrapping around', async () => {
     stubMatchMedia();
     const { el } = await create();
