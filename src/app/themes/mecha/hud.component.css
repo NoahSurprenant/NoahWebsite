@@ -63,41 +63,9 @@ canvas {
     height: 90px;
 }
 
-.vote ul {
-    display: flex;
-    gap: 6px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-/* The three computers, as angled slabs that light up with their vote */
-.vote li {
-    flex: 1;
-    padding: 8px 4px;
-    clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
-    background: #3dff6e;
-    color: #000;
-    text-align: center;
-}
-
-.vote li b {
-    display: block;
-    margin-top: 4px;
-    font-size: 14px;
-}
-
-.vote li.deny {
-    background: #e3001b;
-}
-
-.result {
-    margin-top: 6px;
-    color: #3dff6e;
-}
-
-.result.deny {
-    color: #e3001b;
+/* Shorter screens (most laptops): the waveforms make way for the vote and the links */
+@media (max-height: 820px) {
+    .sync { display: none; }
 }
 
 @media (max-width: 1100px) {
@@ -106,8 +74,7 @@ canvas {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .timer.low,
-    .result.deny {
+    .timer.low {
         animation: blink 0.8s steps(1) infinite;
     }
 }

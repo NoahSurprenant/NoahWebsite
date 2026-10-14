@@ -1,4 +1,5 @@
 import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, signal, viewChild } from '@angular/core';
+import { VotePanelComponent } from './vote-panel.component';
 
 const BATTERY_MS = 5 * 60 * 1000;
 // When the battery runs out: dark for a few seconds, then external power, then a fresh battery
@@ -6,7 +7,7 @@ const DOWN_MS = 3000;
 const EXTERNAL_MS = 1500;
 const CYCLE_MS = BATTERY_MS + DOWN_MS + EXTERNAL_MS;
 const VOTE_MS = 3500;
-const CORES = ['CORE·1', 'CORE·2', 'CORE·3'];
+const COMPUTERS = 3;
 const WAVES = [
   { color: '#3dff6e', speed: 1.0, freq: 0.045, amp: 0.3 },
   { color: '#ff7a00', speed: 1.6, freq: 0.07, amp: 0.22 },
@@ -25,9 +26,9 @@ export type Power = 'internal' | 'down' | 'external';
   templateUrl: './hud.component.html',
   styleUrls: ['./hud.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [VotePanelComponent],
 })
 export class HudComponent implements AfterViewInit, OnDestroy {
-  protected readonly cores = CORES;
   readonly votes = signal<boolean[]>([true, true, false]);
   protected readonly sync = signal('41.3');
   /** The theme blacks out while this is 'down' */
@@ -45,7 +46,7 @@ export class HudComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     this.voteInterval = window.setInterval(() => {
-      if (!this.reducedMotion.matches) this.votes.set(CORES.map(() => Math.random() < 0.6));
+      if (!this.reducedMotion.matches) this.votes.set(Array.from({ length: COMPUTERS }, () => Math.random() < 0.6));
     }, VOTE_MS);
     this.frame(performance.now());
   }
@@ -53,10 +54,6 @@ export class HudComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy() {
     window.clearInterval(this.voteInterval);
     cancelAnimationFrame(this.frameId);
-  }
-
-  protected approved() {
-    return this.votes().filter(Boolean).length >= 2;
   }
 
   // The timer and graph change every frame, so they're drawn straight into the DOM rather than

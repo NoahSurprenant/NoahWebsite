@@ -94,7 +94,7 @@ describe('HudComponent', () => {
 
     hud.votes.set([true, false, false]);
     await fixture.whenStable();
-    expect(Array.from(el.querySelectorAll('.vote li b')).map(b => b.textContent)).toEqual(['APPROVE', 'DENY', 'DENY']);
+    expect(Array.from(el.querySelectorAll('.box')).map(b => b.classList.contains('deny'))).toEqual([false, true, true]);
     expect(el.querySelector('.result')?.textContent).toContain('REJECTED');
 
     hud.votes.set([true, true, false]);

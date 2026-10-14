@@ -15,11 +15,5 @@
 </div>
 
 <div class="panel vote" aria-hidden="true">
-    <p class="label">DECISION SYSTEM</p>
-    <ul>
-        @for (core of cores; track core; let i = $index) {
-        <li [class.deny]="!votes()[i]">{{ core }}<b>{{ votes()[i] ? 'APPROVE' : 'DENY' }}</b></li>
-        }
-    </ul>
-    <p class="result" [class.deny]="!approved()">RESOLUTION: {{ approved() ? 'APPROVED' : 'REJECTED' }}</p>
+    <app-vote-panel [votes]="votes()"></app-vote-panel>
 </div>
