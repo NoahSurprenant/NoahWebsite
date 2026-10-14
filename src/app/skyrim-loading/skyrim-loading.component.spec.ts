@@ -168,12 +168,21 @@ describe('SkyrimLoadingComponent', () => {
       expect(renderer().ratio).toBe(1.5);
     });
 
-    it('judges a very slow device quickly, by time rather than frame count', async () => {
+    it('takes the fog out at the first stalled frame once every puff is in', async () => {
       const { scene } = await create();
       mocks.state.gpu.resolve({ tier: 1, type: 'FALLBACK' } as never);
       await flush();
-      // Two frames a second: 20 frames for the puffs, then a second and a half of trial
-      run(25, 500, 0);
+      // Smooth while the puffs come in, then one frame of 150ms
+      const t = run(25, 16, 0);
+      expect(scene['fog']).toBeDefined();
+      frames.frame(t + 150);
+      expect(scene['fog']).toBeUndefined();
+    });
+
+    it('never tries the fog on a software renderer, which has no GPU at all', async () => {
+      const { scene } = await create();
+      mocks.state.gpu.resolve({ tier: 1, type: 'FALLBACK', gpu: 'google, swiftshader device (subzero) (0x0000c0de), swiftshader driver' } as never);
+      await flush();
       expect(scene['fog']).toBeUndefined();
     });
 

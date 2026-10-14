@@ -8,9 +8,13 @@ import { Item } from '../item';
 import { getGPUTier } from 'detect-gpu';
 
 // An unrecognised GPU gets the fog on trial: it stays if the frames over this long, once every
-// puff is in, average 40fps or better
+// puff is in, average 40fps or better. One frame slower than the last ends the trial at once.
 const FOG_TRIAL_MS = 1500;
 const SLOW_FRAME_MS = 1000 / 40;
+const STALL_MS = 100;
+// GPU names that mean there is no GPU, the drawing is done on the CPU: no fog. detect-gpu's own
+// blocklist misses how Chromium names SwiftShader now ("Google, SwiftShader Device (Subzero)")
+const SOFTWARE_RENDERER = /swiftshader|llvmpipe|softpipe|basic render|software/i;
 
 // Example of smoke with three.js
 // https://codepen.io/sbrl/pen/zNdqdd?editors=0110
@@ -239,7 +243,7 @@ void main() {
     // detect-gpu looks the GPU's name up in its benchmarks. When the name is hidden or unknown it
     // says FALLBACK (tier 1): Brave, for one, gives every user the same generic name to stop
     // fingerprinting. Rather than never showing those the fog, it goes on trial.
-    const unknown = gpuTier.type === 'FALLBACK';
+    const unknown = gpuTier.type === 'FALLBACK' && !SOFTWARE_RENDERER.test(gpuTier.gpu ?? '');
     if (gpuTier.tier <= 1 && !unknown) return;
     this.fog = new Fog(this.reducedMotion.matches);
     this.scene.add(this.fog.object);
@@ -259,10 +263,11 @@ void main() {
     if (!this.fogTrial || !this.fog || last === undefined || this.fog.smokeData.length < this.fog.NUM_INSTANCES) return;
     this.fogTrial.push(now - last);
     const total = this.fogTrial.reduce((sum, ms) => sum + ms);
-    if (total < FOG_TRIAL_MS) return;
+    const stalled = now - last > STALL_MS;
+    if (total < FOG_TRIAL_MS && !stalled) return;
     const average = total / this.fogTrial.length;
     this.fogTrial = undefined;
-    if (average > SLOW_FRAME_MS) {
+    if (stalled || average > SLOW_FRAME_MS) {
       this.scene.remove(this.fog.object);
       disposeObject(this.fog.object);
       this.fog = undefined;
