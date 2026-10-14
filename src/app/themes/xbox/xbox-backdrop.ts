@@ -1,6 +1,6 @@
 // The dashboard's backdrop: green, as if from inside a globe ruled with longitude and latitude
-// lines and tiled with hexagons, and the orb, glowing yellow-green with translucent
-// petals turning around it. Units are screen heights, origin bottom left.
+// lines and tiled with hexagons, and the orb: a yellow core in green glass, wrapped in curled
+// glass shells. Units are screen heights, origin bottom left.
 export const XBOX_SHADER = `
 precision highp float;
 uniform vec2 u_resolution;
@@ -25,6 +25,21 @@ float hexEdge(vec2 p) {
   vec2 b = mod(p - s * 0.5, s) - s * 0.5;
   vec2 g = abs(dot(a, a) < dot(b, b) ? a : b);
   return 0.5 - max(dot(g, normalize(s)), g.x);
+}
+
+// A curled shell of glass hugging the orb: a band from radius r0, thick deep at its middle and
+// tapering to nothing at its ends, centred on angle at and spanning span radians, its outer edge
+// crumpled by crumple. Returns how much of it is here, and its bright outer rim.
+vec2 shell(float d, float ang, float at, float span, float r0, float thick, float crumple, float t) {
+  float along = (mod(ang - at + PI, 2.0 * PI) - PI) / (span * 0.5);
+  if (abs(along) > 1.0) return vec2(0.0);
+  float taper = 1.0 - along * along;
+  // Curls a little further out towards one end
+  float inner = r0 + 0.05 * along;
+  float outer = inner + thick * taper + crumple * sin(along * 9.0 + t) * taper;
+  float fill = smoothstep(inner - 0.02, inner + 0.02, d) * smoothstep(outer + 0.02, outer - 0.02, d);
+  float rim = smoothstep(0.035, 0.0, abs(d - outer)) * taper;
+  return vec2(fill * taper, rim);
 }
 
 void main() {
@@ -67,31 +82,42 @@ void main() {
   float d = length(q);
   float ang = atan(q.y, q.x);
 
-  // Translucent petals behind and around it, turning slowly, in two layers going opposite ways
-  float lobes1 = pow(0.5 + 0.5 * cos(4.0 * (ang - t * 0.12)), 2.0);
-  float lobes2 = pow(0.5 + 0.5 * cos(3.0 * (ang + t * 0.09) + 1.3), 3.0);
-  float outer1 = 1.05 + 0.42 * lobes1;
-  float outer2 = 1.0 + 0.6 * lobes2;
-  float petal1 = smoothstep(outer1, outer1 - 0.03, d) * smoothstep(0.85, 0.95, d);
-  float petal2 = smoothstep(outer2, outer2 - 0.03, d) * smoothstep(0.85, 0.95, d);
-  float rims = smoothstep(0.05, 0.0, abs(d - outer1)) * lobes1 + smoothstep(0.05, 0.0, abs(d - outer2)) * lobes2;
-  vec3 leaf = vec3(0.45, 0.85, 0.20);
-  col = mix(col, leaf, (petal1 * 0.32 + petal2 * 0.22) * u_intro);
-  col += vec3(0.55, 0.95, 0.35) * rims * 0.35 * u_intro;
-  // A faint ring further out
-  col += vec3(0.4, 0.8, 0.2) * smoothstep(0.03, 0.0, abs(d - 1.75)) * 0.25 * u_intro;
-
   if (d < 1.0) {
     float z = sqrt(1.0 - d * d);
-    // Yellow at the heart, green towards the rim
-    vec3 sphere = mix(vec3(0.97, 0.98, 0.45), vec3(0.62, 0.82, 0.16), smoothstep(0.0, 0.85, d));
-    sphere = mix(sphere, vec3(0.25, 0.55, 0.08), smoothstep(0.75, 1.0, d));
-    // Gloss from the top left, and a pulse of light
+    // A yellow core showing through thick green glass: brightest low on the right, greener up
+    // on the left
+    float core = smoothstep(1.05, 0.15, length(q - vec2(0.12, -0.14)));
+    vec3 sphere = mix(vec3(0.20, 0.55, 0.10), vec3(0.93, 0.92, 0.25), core);
+    sphere = mix(sphere, vec3(0.18, 0.55, 0.12), smoothstep(0.3, 0.95, dot(q, normalize(vec2(-0.7, 0.7)))) * 0.4);
+    // The glass, thickest at the rim, with a bright edge
+    sphere = mix(sphere, vec3(0.35, 0.78, 0.18), smoothstep(0.8, 0.99, d) * 0.6);
+    sphere += vec3(0.6, 1.0, 0.4) * smoothstep(0.04, 0.0, abs(d - 0.97)) * 0.4;
+    // A darker hollow on the upper left, with a small glint
+    float hollow = smoothstep(0.42, 0.18, length(q - vec2(-0.32, 0.4)));
+    sphere = mix(sphere, vec3(0.1, 0.45, 0.08), hollow * 0.55);
+    sphere += smoothstep(0.035, 0.015, length(q - vec2(-0.26, 0.3))) * 0.8;
+    // Gloss, and a slow pulse of light
     vec3 n = vec3(q, z);
-    float spec = pow(max(dot(n, normalize(vec3(-0.5, 0.6, 0.8))), 0.0), 24.0);
-    sphere += spec * 0.35 + 0.06 * sin(t * 1.6);
+    float spec = pow(max(dot(n, normalize(vec3(-0.5, 0.6, 0.8))), 0.0), 30.0);
+    sphere += spec * 0.2 + 0.05 * sin(t * 1.6);
     col = mix(col, sphere, smoothstep(1.0, 0.97, d));
   }
+
+  // Curled glass shells wrapped round it, swaying slowly: a crescent under it, a crumpled frond
+  // round its right side, and a big faint arc over the top left
+  float sway = sin(t * 0.25);
+  vec2 bottom = shell(d, ang, -1.85 + 0.1 * sway, 2.7, 0.86, 0.32, 0.0, t);
+  vec2 frond = shell(d, ang, 0.1 - 0.12 * sway, 2.4, 0.88, 0.34, 0.06, t * 0.7);
+  vec2 arc = shell(d, ang, 2.25 + 0.08 * sway, 2.1, 1.1, 0.3, 0.0, t);
+  col = mix(col, vec3(0.62, 0.95, 0.36), (bottom.x * 0.55 + frond.x * 0.5 + arc.x * 0.22) * u_intro);
+  col += vec3(0.8, 1.0, 0.55) * (bottom.y * 0.8 + frond.y * 0.9 + arc.y * 0.45) * u_intro;
+  // Crinkles of light across the frond
+  col += vec3(0.5, 0.9, 0.3) * frond.x * pow(0.5 + 0.5 * sin(ang * 30.0 + d * 12.0 + t), 6.0) * 0.35 * u_intro;
+  // A faint halo ring, and streaks trailing off to the left
+  col += vec3(0.3, 0.7, 0.15) * smoothstep(0.04, 0.0, abs(d - 1.6)) * 0.18 * u_intro;
+  float streaks = smoothstep(-0.95, -1.05, q.x) * smoothstep(-2.6, -1.4, q.x) * smoothstep(0.35, 0.0, abs(q.y + 0.1));
+  col += vec3(0.4, 0.85, 0.2) * streaks * pow(0.5 + 0.5 * sin(q.y * 55.0), 8.0) * 0.25 * u_intro;
+
   // Its glow
   col += vec3(0.6, 0.9, 0.2) * 0.22 / (max(d - 1.0, 0.0) * 5.0 + 0.6) * step(0.98, d) * u_intro;
 

@@ -63,17 +63,30 @@
     transform: translateX(calc(var(--arc) * 18px));
 }
 
-/* A glossy green pod, wired to its bar */
+/* A pod, wired to its bar: a thick glossy lime rim round a dark glass centre, with a small ring
+   low inside it like a lens. The selected one's centre glows olive. */
 .pod {
     position: relative;
     flex: none;
-    width: clamp(40px, 3vw, 64px);
+    width: clamp(48px, 4.2vw, 88px);
     aspect-ratio: 1;
     margin-right: 14px;
     border-radius: 50%;
-    background: radial-gradient(circle at 40% 35%, #d6f78a 0 6%, #4c9a1c 22%, #10380a 50%, #2c7212 60%, #9be04c 64%, #1f5e0d 76%);
+    background:
+        radial-gradient(closest-side, transparent 0 55%, #7fd63a 60% 78%, transparent 84%) 50% 68% / 42% 42% no-repeat,
+        radial-gradient(closest-side, var(--core, #041a04) 0 52%, #2c7a12 58%, #a6f05e 68%, #e2ffa6 76%, #76d230 86%, #1f5e0d 97%, transparent);
     box-shadow: 0 0 12px rgb(120 220 40 / 45%);
-    filter: var(--lit, none);
+}
+
+/* The light caught along the rim's top left */
+.pod::before {
+    content: "";
+    position: absolute;
+    inset: 5%;
+    border-radius: 50%;
+    border-top: 3px solid rgb(236 255 190 / 75%);
+    border-left: 2px solid rgb(236 255 190 / 35%);
+    rotate: -15deg;
 }
 
 .pod::after {
@@ -115,7 +128,7 @@
     --edge: var(--lime);
     --face: linear-gradient(#eaf46a, #b4c826);
     --ink: #223308;
-    --lit: brightness(1.35) saturate(1.2);
+    --core: #6e7d1c;
 }
 
 @media (prefers-reduced-motion: no-preference) {
