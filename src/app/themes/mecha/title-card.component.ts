@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, OnDestroy, signal } from 
 import { NAME } from '../../links';
 
 // Next-episode title cards, each a riff on the real episode with that number, in the show's order.
-// One cuts to the next every few seconds. 26' is the film's retelling of the last episode.
+// One cuts to the next every few seconds. 25' and 26' are the film's retelling of the last two.
 export const EPISODES = [
   { number: '01', title: 'Bug Attack' },
   { number: '02', title: 'The Beast (Monolith)' },
@@ -30,6 +30,7 @@ export const EPISODES = [
   { number: '24', title: 'The Beginning and the End, or "Knockin\' on Port 22"' },
   { number: '25', title: 'Do you LGTM?' },
   { number: '26', title: 'Take Care of Your Server' },
+  { number: "25'", title: 'Force-push is destructive.' },
   { number: "26'", title: 'The End of Legacy Code' },
 ];
 const CARD_MS = 8000;
