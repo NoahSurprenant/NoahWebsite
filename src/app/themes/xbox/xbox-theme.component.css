@@ -46,10 +46,12 @@
     text-shadow: 0 0 12px rgb(150 230 60 / 50%);
 }
 
+/* Just right of the middle, so the orb (fitted to the space left of it) and the menu stay
+   together on wide screens, as on the console */
 .menu {
     position: absolute;
     top: 50%;
-    right: 14%;
+    left: 52%;
     display: flex;
     flex-direction: column;
     gap: clamp(14px, 1.2vw, 24px);
@@ -86,7 +88,6 @@
     border-radius: 50%;
     border-top: 3px solid rgb(236 255 190 / 75%);
     border-left: 2px solid rgb(236 255 190 / 35%);
-    rotate: -15deg;
 }
 
 .pod::after {
@@ -156,14 +157,14 @@
 /* Portrait: the orb above, the menu below it */
 @media (max-aspect-ratio: 1/1) {
     .name { top: 76px; left: 0; right: 0; text-align: center; }
-    .menu { top: auto; bottom: 96px; right: 50%; transform: translateX(50%); }
+    .menu { top: auto; bottom: 96px; left: 50%; transform: translateX(-50%); }
     .bar { width: min(220px, 52vw); font-size: 17px; }
 }
 
 /* Short landscape screens (a phone on its side, browser bars and all): smaller everything */
 @media (max-height: 500px) and (min-aspect-ratio: 1/1) {
     .name { top: 16px; left: 72px; max-width: calc(58vw - 96px); font-size: min(3vw, 26px); }
-    .menu { top: calc(50% - 14px); right: 24px; gap: min(10px, 2.5vh); }
+    .menu { top: calc(50% - 14px); left: auto; right: 24px; gap: min(10px, 2.5vh); }
     .pod { width: min(34px, 9vh); margin-right: 8px; }
     .bar { width: 30vw; padding: min(4px, 1vh) 12px; font-size: min(4.8vh, 17px); }
 }

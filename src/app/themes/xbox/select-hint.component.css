@@ -5,7 +5,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 18px;
+    font-size: clamp(18px, 1.2vw, 26px);
     letter-spacing: 0.08em;
 }
 
@@ -23,7 +23,7 @@
 .a {
     display: grid;
     place-items: center;
-    width: 40px;
+    width: clamp(40px, 2.6vw, 58px);
     aspect-ratio: 1;
     border-radius: 50%;
     background: radial-gradient(circle at 40% 35%, #c8f47a, #3f9a18 55%, #145008);

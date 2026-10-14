@@ -1,4 +1,6 @@
 :host {
+    /* A computer box: 40px, growing with big screens like the rest of the HUD */
+    --box: clamp(40px, 2.6vw, 60px);
     display: grid;
     justify-items: center;
     gap: 10px;
@@ -28,7 +30,7 @@
 
 .cluster {
     display: grid;
-    grid-template: "one name three" auto ". two ." auto / 40px auto 40px;
+    grid-template: "one name three" auto ". two ." auto / var(--box) auto var(--box);
     gap: 4px 8px;
     align-items: center;
     justify-items: center;
@@ -38,14 +40,14 @@
 .box {
     display: grid;
     place-items: center;
-    width: 40px;
-    height: 36px;
+    width: var(--box);
+    height: calc(var(--box) * 0.9);
     border: 2px solid #7fe3ff;
     border-radius: 4px;
     background: #bff4ff;
     box-shadow: 0 0 12px rgb(127 227 255 / 60%);
     color: #002a33;
-    font: 900 24px/1 ui-monospace, Menlo, Consolas, monospace;
+    font: 900 calc(var(--box) * 0.6)/1 ui-monospace, Menlo, Consolas, monospace;
 }
 
 .box.deny {

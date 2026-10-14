@@ -5,7 +5,7 @@
     height: 100%;
     background: #0a0f0a;
     color: var(--fg);
-    font: 18px/1.45 ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+    font: clamp(18px, 1.1vw, 26px)/1.45 ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
     text-shadow: 0 0 6px rgb(61 255 110 / 45%);
 }
 

@@ -1,9 +1,10 @@
 :host {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    width: 340px;
-    font: 600 12px/1.2 ui-monospace, Menlo, Consolas, monospace;
+    gap: 1.15em;
+    /* Grows with big screens, everything inside in em */
+    width: clamp(340px, 22vw, 520px);
+    font: 600 clamp(12px, 0.78vw, 18px)/1.2 ui-monospace, Menlo, Consolas, monospace;
     letter-spacing: 0.08em;
 }
 
@@ -40,7 +41,7 @@ p {
 .timer {
     margin-top: 4px;
     color: #ffb000;
-    font-size: 44px;
+    font-size: 3.65em;
     letter-spacing: 0.04em;
     font-variant-numeric: tabular-nums;
     transform: skewX(-8deg);
@@ -60,7 +61,7 @@ p {
 canvas {
     display: block;
     width: 100%;
-    height: 90px;
+    height: 7.5em;
 }
 
 /* Shorter screens (most laptops): the waveforms make way for the vote and the links */
