@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { DeferBlockBehavior, DeferBlockState, TestBed } from '@angular/core/testing';
-import { AppComponent } from './app.component';
+import { AppComponent, isAprilFools } from './app.component';
 import { SkyrimLoadingComponent } from './skyrim-loading/skyrim-loading.component';
 import { REDUCED_MOTION, stubMatchMedia } from './testing/match-media';
 import { ThemeService } from './themes/theme.service';
@@ -102,15 +102,41 @@ describe('AppComponent', () => {
 });
 
 describe('AppComponent watermark', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
-  it('shows "Activate Windows" only on full-size desktop windows', async () => {
+  /** The app, as loaded on the given day. Only Date is faked, so whenStable() still works. */
+  function loadOn(day: Date) {
+    vi.useFakeTimers({ toFake: ['Date'], now: day });
     stubMatchMedia(REDUCED_MOTION);
     TestBed.overrideComponent(SkyrimThemeComponent, {
       remove: { imports: [SkyrimLoadingComponent] },
       add: { imports: [SkyrimLoadingStubComponent] },
     });
-    const fixture = TestBed.createComponent(AppComponent);
+    return TestBed.createComponent(AppComponent);
+  }
+
+  it('knows April Fools\' Day', () => {
+    expect(isAprilFools(new Date(2027, 3, 1, 0, 0))).toBe(true);
+    expect(isAprilFools(new Date(2027, 3, 1, 23, 59))).toBe(true);
+    expect(isAprilFools(new Date(2027, 2, 31, 23, 59))).toBe(false);
+    expect(isAprilFools(new Date(2027, 3, 2))).toBe(false);
+    expect(isAprilFools(new Date(2027, 0, 1))).toBe(false);
+  });
+
+  it('never shows "Activate Windows" on other days', async () => {
+    const fixture = loadOn(new Date(2026, 9, 14, 12));
+    vi.stubGlobal('innerWidth', 1920);
+    vi.stubGlobal('innerHeight', 1080);
+    window.dispatchEvent(new Event('resize'));
+    await fixture.whenStable();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.windows-watermark')).toBeNull();
+  });
+
+  it('shows "Activate Windows" on April Fools\' Day, only on full-size desktop windows', async () => {
+    const fixture = loadOn(new Date(2027, 3, 1, 12));
     const resize = async (width: number, height: number) => {
       vi.stubGlobal('innerWidth', width);
       vi.stubGlobal('innerHeight', height);

@@ -6,6 +6,11 @@ import { MechaThemeComponent } from './themes/mecha/mecha-theme.component';
 import { ThemeService } from './themes/theme.service';
 import { XboxThemeComponent } from './themes/xbox/xbox-theme.component';
 
+/** 1 April, in the date's own time zone. */
+export function isAprilFools(date: Date) {
+  return date.getMonth() === 3 && date.getDate() === 1;
+}
+
 @Component({
     selector: 'app-root',
     templateUrl: './app.component.html',
@@ -19,8 +24,11 @@ export class AppComponent implements OnInit, OnDestroy {
 
   innerWidth = signal<number>(0);
   innerHeight = signal<number>(0);
+  // An April Fools' Day gag, by the visitor's own clock, checked when the page loads
+  private readonly aprilFools = isAprilFools(new Date());
+  // Only on full-size desktop windows, where the real one would show
   displayWatermark = computed(() => {
-    return this.innerWidth() >= 1920 && this.innerHeight() > 800;
+    return this.aprilFools && this.innerWidth() >= 1920 && this.innerHeight() > 800;
   });
 
   private resizeHandler = () => {

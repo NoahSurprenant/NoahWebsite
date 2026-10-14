@@ -177,8 +177,8 @@ test('the cog switches theme, puts it in the URL and remembers it', async ({ pag
 });
 
 // The screen sizes, by device; the name goes in each screenshot's file name, which the contact
-// sheets use for order and captions. The "Activate Windows" watermark (on the desktop) is a joke
-// overlay on top of everything, so the layout checks leave it out.
+// sheets use for order and captions. The "Activate Windows" watermark (April Fools' Day, on the
+// desktop) is a joke overlay on top of everything, so the layout checks leave it out.
 const SIZES = [
   ['desktop', 1920, 1080],
   ['laptop', 1280, 720],
