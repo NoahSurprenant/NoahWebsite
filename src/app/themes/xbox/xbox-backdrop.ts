@@ -12,10 +12,10 @@ uniform float u_intro;   // 0 to 1 over the first moments: the orb swells in
 const float PI = 3.14159265;
 // How wide the view is, across the screen's longer side: a wide-angle (fisheye) lens, which is what
 // makes lines away from the middle bow outwards
-const float FOV = 2.0;
-// Globe lines every 10 degrees; mesh cells about 4 degrees across, so this many around
-const float GLOBE_STEP = PI / 18.0;
-const float CELLS_AROUND = 90.0;
+const float FOV = 3.1;
+// Globe lines every 15 degrees; mesh cells about 6 degrees across, so this many around
+const float GLOBE_STEP = PI / 12.0;
+const float CELLS_AROUND = 60.0;
 
 vec2 hash2(vec2 p) {
   p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
