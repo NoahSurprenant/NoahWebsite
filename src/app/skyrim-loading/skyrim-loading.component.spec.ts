@@ -145,6 +145,52 @@ describe('SkyrimLoadingComponent', () => {
     expect(scene['fog']).toBeUndefined();
   });
 
+  describe('on a GPU it can\'t identify (Brave hides the name)', () => {
+    /** Runs frames the given number of milliseconds apart, from the given time. */
+    function run(count: number, every: number, from: number) {
+      for (let i = 0; i < count; i++) frames.frame(from + i * every);
+      return from + count * every;
+    }
+
+    it('keeps the fog when the frames keep up, even across a pause like a hidden tab', async () => {
+      vi.stubGlobal('devicePixelRatio', 3);
+      const { scene, renderer } = await create();
+      mocks.state.gpu.resolve({ tier: 1, type: 'FALLBACK' } as never);
+      await flush();
+      expect(scene['fog']).toBeDefined();
+      // 20 frames to bring every puff in, then the trial, with the tab hidden for a while in the middle
+      let t = run(25, 16, 0);
+      t = run(45, 16, t);
+      document.dispatchEvent(new Event('visibilitychange'));
+      t = run(55, 16, t + 60_000);
+      expect(scene['fog']).toBeDefined();
+      expect(scene['fogTrial']).toBeUndefined();
+      expect(renderer().ratio).toBe(1.5);
+    });
+
+    it('judges a very slow device quickly, by time rather than frame count', async () => {
+      const { scene } = await create();
+      mocks.state.gpu.resolve({ tier: 1, type: 'FALLBACK' } as never);
+      await flush();
+      // Two frames a second: 20 frames for the puffs, then a second and a half of trial
+      run(25, 500, 0);
+      expect(scene['fog']).toBeUndefined();
+    });
+
+    it('takes the fog out again when it slows the frames down', async () => {
+      vi.stubGlobal('devicePixelRatio', 3);
+      const { scene, renderer } = await create();
+      mocks.state.gpu.resolve({ tier: 1, type: 'FALLBACK' } as never);
+      await flush();
+      const fog = scene['fog']!;
+      run(120, 50, 0);
+      expect(scene['fog']).toBeUndefined();
+      expect(fog.object.parent).toBeNull();
+      // Back to the sharper pixel ratio
+      expect(renderer().ratio).toBe(2);
+    });
+  });
+
   it("keeps the caption and links, without the scene, when there's no WebGL", async () => {
     mocks.state.noWebGL = true;
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});

@@ -7,6 +7,11 @@ import { Fog } from '../fog/fog';
 import { Item } from '../item';
 import { getGPUTier } from 'detect-gpu';
 
+// An unrecognised GPU gets the fog on trial: it stays if the frames over this long, once every
+// puff is in, average 40fps or better
+const FOG_TRIAL_MS = 1500;
+const SLOW_FRAME_MS = 1000 / 40;
+
 // Example of smoke with three.js
 // https://codepen.io/sbrl/pen/zNdqdd?editors=0110
 
@@ -42,6 +47,9 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
   private readonly gltfLoader = new GLTFLoader();
   private model?: Object3D;
   private fog?: Fog;
+  // Frame times while the fog is on trial, and the last frame's time to measure them from
+  private fogTrial?: number[];
+  private lastFrame?: number;
   private destroyed = false;
   // Fires when devicePixelRatio changes, e.g. the window moves to a monitor with different scaling
   private dprQuery?: MediaQueryList;
@@ -79,6 +87,7 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
 
     // Add resize listener
     window.addEventListener('resize', this.handleResize);
+    document.addEventListener('visibilitychange', this.restartFrameClock);
   }
 
   // The Perlin sphere is only one of the items, so it's built the first time it's shown
@@ -226,11 +235,40 @@ void main() {
     await yieldToMain();
     if (this.destroyed) return;
     const gpuTier = await getGPUTier({ benchmarksURL: `${ASSET_PATH}detect-gpu` });
-    if (this.destroyed || gpuTier.tier <= 1) return;
+    if (this.destroyed) return;
+    // detect-gpu looks the GPU's name up in its benchmarks. When the name is hidden or unknown it
+    // says FALLBACK (tier 1): Brave, for one, gives every user the same generic name to stop
+    // fingerprinting. Rather than never showing those the fog, it goes on trial.
+    const unknown = gpuTier.type === 'FALLBACK';
+    if (gpuTier.tier <= 1 && !unknown) return;
     this.fog = new Fog(this.reducedMotion.matches);
     this.scene.add(this.fog.object);
+    if (unknown) this.fogTrial = [];
     // The fog lowers the pixel ratio cap
     this.resize();
+  }
+
+  // A hidden tab gets no frames: the gap until it's back isn't a slow frame
+  private restartFrameClock = () => (this.lastFrame = undefined);
+
+  /** Times the frames while the fog is on trial, and takes it out again if they're too slow. */
+  private judgeFog(now: number) {
+    const last = this.lastFrame;
+    this.lastFrame = now;
+    // Only once every puff is in
+    if (!this.fogTrial || !this.fog || last === undefined || this.fog.smokeData.length < this.fog.NUM_INSTANCES) return;
+    this.fogTrial.push(now - last);
+    const total = this.fogTrial.reduce((sum, ms) => sum + ms);
+    if (total < FOG_TRIAL_MS) return;
+    const average = total / this.fogTrial.length;
+    this.fogTrial = undefined;
+    if (average > SLOW_FRAME_MS) {
+      this.scene.remove(this.fog.object);
+      disposeObject(this.fog.object);
+      this.fog = undefined;
+      // Back to the higher pixel ratio cap
+      this.resize();
+    }
   }
 
   private resize() {
@@ -263,7 +301,8 @@ void main() {
   };
 
   private requestFrame() {
-    this.frameId = requestAnimationFrame(() => {
+    this.frameId = requestAnimationFrame((now) => {
+      this.judgeFog(now);
       this.onBeforeRender();
       this.renderer?.render(this.scene, this.camera);
       this.requestFrame();
@@ -368,6 +407,7 @@ void main() {
   ngOnDestroy(): void {
     window.clearInterval(this.intervalHandle);
     window.removeEventListener('resize', this.handleResize);
+    document.removeEventListener('visibilitychange', this.restartFrameClock);
     this.dprQuery?.removeEventListener('change', this.watchPixelRatio);
     this.destroyed = true;
     if (this.frameId !== undefined) cancelAnimationFrame(this.frameId);
