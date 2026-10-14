@@ -1,5 +1,5 @@
 // The dashboard's backdrop: green, as if from inside a globe ruled with longitude and latitude
-// lines and covered in a mesh of irregular cells, and the orb, glowing yellow-green with translucent
+// lines and tiled with hexagons, and the orb, glowing yellow-green with translucent
 // petals turning around it. Units are screen heights, origin bottom left.
 export const XBOX_SHADER = `
 precision highp float;
@@ -13,40 +13,18 @@ const float PI = 3.14159265;
 // How wide the view is, across the screen's longer side: a wide-angle (fisheye) lens, which is what
 // makes lines away from the middle bow outwards
 const float FOV = 3.1;
-// Globe lines every 15 degrees; mesh cells about 6 degrees across, so this many around
+// Globe lines every 15 degrees; hexagons about 6 degrees across at the equator, so this many around
 const float GLOBE_STEP = PI / 12.0;
-const float CELLS_AROUND = 60.0;
+const float HEXES_AROUND = 60.0;
 
-vec2 hash2(vec2 p) {
-  p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
-  return fract(sin(p) * 43758.5453);
-}
-
-// Distance to the nearest edge of a mesh of irregular cells (a Voronoi diagram, by Inigo Quilez's
-// two-pass method), in cell units. Cells wrap around the globe: x is taken modulo CELLS_AROUND.
-float meshEdge(vec2 x) {
-  vec2 n = floor(x), f = fract(x);
-  vec2 mg, mr;
-  float md = 8.0;
-  for (int j = -1; j <= 1; j++)
-  for (int i = -1; i <= 1; i++) {
-    vec2 g = vec2(float(i), float(j));
-    vec2 cell = n + g;
-    cell.x = mod(cell.x, CELLS_AROUND);
-    vec2 r = g + 0.2 + 0.6 * hash2(cell) - f;
-    float d = dot(r, r);
-    if (d < md) { md = d; mr = r; mg = g; }
-  }
-  md = 8.0;
-  for (int j = -2; j <= 2; j++)
-  for (int i = -2; i <= 2; i++) {
-    vec2 g = mg + vec2(float(i), float(j));
-    vec2 cell = n + g;
-    cell.x = mod(cell.x, CELLS_AROUND);
-    vec2 r = g + 0.2 + 0.6 * hash2(cell) - f;
-    if (dot(mr - r, mr - r) > 0.00001) md = min(md, dot(0.5 * (mr + r), normalize(r - mr)));
-  }
-  return md;
+// Distance from p to the nearest edge of a tiling of regular hexagons one unit across (flat sides
+// left and right), in the same units. It repeats every unit across, so the tiling wraps around.
+float hexEdge(vec2 p) {
+  const vec2 s = vec2(1.0, 1.7320508);
+  vec2 a = mod(p, s) - s * 0.5;
+  vec2 b = mod(p - s * 0.5, s) - s * 0.5;
+  vec2 g = abs(dot(a, a) < dot(b, b) ? a : b);
+  return 0.5 - max(dot(g, normalize(s)), g.x);
 }
 
 void main() {
@@ -71,9 +49,12 @@ void main() {
   float lonLine = abs(fract(lon / GLOBE_STEP + 0.5) - 0.5) * GLOBE_STEP * cos(lat);
   float globeLines = 1.0 - smoothstep(px * 0.6, px * 1.8, min(latLine, lonLine));
 
-  // The mesh, on the same globe
-  float cell = 2.0 * PI / CELLS_AROUND;
-  float meshLines = 1.0 - smoothstep(px * 0.4, px * 1.3, meshEdge(vec2(lon, lat) / cell) * cell * cos(lat));
+  // Regular hexagons on the same globe. Latitude goes through the Mercator projection, which keeps
+  // shapes true, so they stay hexagons as they curve with the globe (growing towards the poles,
+  // like map tiles); an edge's width on screen shrinks with cos(lat).
+  float hex = 2.0 * PI / HEXES_AROUND;
+  float mercator = log(tan(PI / 4.0 + lat / 2.0));
+  float meshLines = 1.0 - smoothstep(px * 0.4, px * 1.3, hexEdge(vec2(lon, mercator) / hex) * hex * cos(lat));
 
   // Darker in the middle, greener towards the edges
   vec3 col = mix(vec3(0.02, 0.10, 0.015), vec3(0.06, 0.22, 0.04), smoothstep(0.05, 0.65, length(s)));
