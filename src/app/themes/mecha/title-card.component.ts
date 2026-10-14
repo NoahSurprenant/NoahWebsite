@@ -31,7 +31,7 @@ export const EPISODES = [
   { number: '25', title: 'Do you LGTM?' },
   { number: '26', title: 'Take Care of Your Server' },
   { number: "25'", title: 'Force-push is destructive.' },
-  { number: "26'", title: 'The End of Legacy Code' },
+  { number: "26'", title: 'I need root.' },
 ];
 const CARD_MS = 8000;
 
