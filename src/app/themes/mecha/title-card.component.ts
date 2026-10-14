@@ -19,6 +19,7 @@ export const EPISODES = [
   { number: '14', title: 'Weaving a Git History' },
   { number: '16', title: 'Splitting of the Monolith' },
   { number: '17', title: 'Fourth Replica' },
+  { number: '18', title: 'Ambivalence (Works on My Machine)' },
   { number: '19', title: 'Dependency Injection' },
   { number: '20', title: 'Weaving a Git History 2: rebase stage' },
   { number: '21', title: 'He was aware that he was still a junior' },
