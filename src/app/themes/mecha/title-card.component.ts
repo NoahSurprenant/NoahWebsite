@@ -24,7 +24,7 @@ export const EPISODES = [
   { number: '21', title: 'He was aware that he was still a junior' },
   { number: '22', title: "Don't Deploy on Friday." },
   { number: '23', title: 'Release III' },
-  { number: '24', title: 'The Beginning and the End, or "Knockin\' on Port 443"' },
+  { number: '24', title: 'The Beginning and the End, or "Knockin\' on Port 22"' },
   { number: '25', title: 'Do you LGTM?' },
   { number: '26', title: 'Take Care of Your Server' },
   { number: "26'", title: 'The End of Legacy Code' },
