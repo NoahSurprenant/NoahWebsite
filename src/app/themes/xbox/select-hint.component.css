@@ -1,0 +1,51 @@
+:host {
+    position: absolute;
+    right: 14%;
+    bottom: 48px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 18px;
+    letter-spacing: 0.08em;
+}
+
+:host::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    width: 30vw;
+    height: 120px;
+    border-top: 2px solid rgb(127 214 58 / 55%);
+    border-radius: 100% 0 0 0;
+}
+
+.a {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #c8f47a, #3f9a18 55%, #145008);
+    box-shadow: 0 0 12px rgb(120 220 40 / 45%);
+    color: #e8ffd0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    :host {
+        animation: swoop 0.8s ease-out 0.6s backwards;
+    }
+}
+
+@keyframes swoop {
+    from { opacity: 0; translate: 80px 0; }
+}
+
+@media (max-aspect-ratio: 1/1) {
+    :host { right: 24px; bottom: 28px; }
+}
+
+@media (max-height: 500px) and (min-aspect-ratio: 1/1) {
+    :host { right: 24px; bottom: 8px; font-size: 14px; }
+    .a { width: 28px; }
+}

@@ -4,16 +4,16 @@
 
     <h1 #heading class="name">{{ name }}</h1>
 
+    <!-- Each item: a glossy pod on an arc around the orb, wired to a bar. The first is selected
+         until another is hovered or focused, as on the console. -->
     <nav #menu class="menu" (keydown)="onKeydown($event)">
         @for (link of links; track link.id; let i = $index) {
-        <a [href]="link.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="link.label" [style.--i]="i">
-            <span>{{ link.short }}</span>
+        <a [href]="link.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="link.label" [style.--i]="i" [style.--arc]="arc[i]">
+            <span class="pod"></span>
+            <span class="bar"><span>{{ link.short }}</span></span>
         </a>
         }
     </nav>
 
-    <p #hints class="buttons" aria-hidden="true">
-        <span class="a">A</span> Select
-        <span class="b">B</span> Back
-    </p>
+    <app-select-hint #hints></app-select-hint>
 </div>

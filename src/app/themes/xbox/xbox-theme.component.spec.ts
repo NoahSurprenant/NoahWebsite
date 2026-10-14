@@ -37,10 +37,10 @@ describe('XboxThemeComponent', () => {
     place(el.querySelector('.name')!, { left: 80, top: 80, width: 500, height: 60 });
     if (width > height) {
       place(el.querySelector('.menu')!, { left: width - 500, top: height / 2 - 150, width: 320, height: 300 });
-      place(el.querySelector('.buttons')!, { left: width - 500, top: height - 80, width: 300, height: 30 });
+      place(el.querySelector('app-select-hint') as HTMLElement, { left: width - 500, top: height - 80, width: 300, height: 30 });
     } else {
       place(el.querySelector('.menu')!, { left: 40, top: height - 400, width: width - 80, height: 300 });
-      place(el.querySelector('.buttons')!, { left: 0, top: height - 50, width, height: 30 });
+      place(el.querySelector('app-select-hint') as HTMLElement, { left: 0, top: height - 50, width, height: 30 });
     }
   }
 
@@ -84,9 +84,9 @@ describe('XboxThemeComponent', () => {
     const { el, orb } = await create();
     layOut(el, 390, 844);
     window.dispatchEvent(new Event('resize'));
-    // Room: y 140-444, the full width
+    // Room: y 140-444, the full width less room for the petals either side
     expect(parseFloat(orb.style.top) + parseFloat(orb.style.height) / 2).toBe(292);
-    expect(parseFloat(orb.style.width)).toBeCloseTo(304 * 0.85);
+    expect(parseFloat(orb.style.width)).toBeCloseTo(390 / 1.6 * 0.85);
   });
 
   it('swells the orb in over the first moments', async () => {

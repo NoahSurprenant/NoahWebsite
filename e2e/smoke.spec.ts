@@ -195,7 +195,7 @@ const LAYOUT: Record<string, string[]> = {
   // The name and each icon rather than the list, whose box spans the width on phones
   skyrim: ['.cog', 'text:app-skyrim-theme .name', 'app-skyrim-theme .list a', 'app-skyrim-loading .caption'],
   terminal: ['.cog', 'app-terminal-theme .screen'],
-  xbox: ['.cog', 'app-xbox-theme .name', 'app-xbox-theme .orb', 'app-xbox-theme .menu', 'app-xbox-theme .buttons'],
+  xbox: ['.cog', 'app-xbox-theme .name', 'app-xbox-theme .orb', 'app-xbox-theme .menu', 'app-select-hint'],
   mecha: ['.cog', 'app-title-card h1', 'app-hud .panel', 'app-mecha-theme .console', 'app-banner'],
 };
 

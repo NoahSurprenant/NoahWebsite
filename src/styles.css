@@ -4,6 +4,10 @@
    the only weight the page uses. The build copies the file into media/ with a content hash. */
 @import "@fontsource/roboto/latin-400.css";
 
+/* Orbitron (SIL Open Font License), the Xbox theme's lettering, from the pinned @fontsource/orbitron
+   package, Latin 600 only. Browsers only download it when the Xbox theme shows. */
+@import "@fontsource/orbitron/latin-600.css";
+
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
 html, body, app-root, .app-frame {
