@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, Texture, TextureLoader, Vector3 } from 'three';
 import { manualFrames } from '../testing/canvas';
 import { REDUCED_MOTION, stubMatchMedia } from '../testing/match-media';
+import { pointer } from '../testing/pointer';
 import type { SkyrimLoadingComponent as Component } from './skyrim-loading.component';
 
 // jsdom has no WebGL, so three.js's renderer, the model loader and the GPU check are stand-ins the
@@ -453,5 +454,230 @@ describe('SkyrimLoadingComponent', () => {
     // ...and at the standard distance on landscape
     resize(1600, 900);
     expect(scene.camPosition().equals(new Vector3(0, 0, 80))).toBe(true);
+  });
+
+  describe('turned and zoomed by hand', () => {
+    /** A scene showing a loaded model, with the clock stopped at 0 so nothing drifts by itself. */
+    async function playWith(item = 0, loaded = model().scene) {
+      const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+      const created = await create(item);
+      if (item !== PERLIN) mocks.state.loads.at(-1)!.onLoad({ scene: loaded });
+      await flush();
+      const host = created.el.querySelector<HTMLElement>('.canvas-host')!;
+      const send = (type: string, options: Parameters<typeof pointer>[1] = {}) => host.dispatchEvent(pointer(type, options));
+      const wheel = (deltaY: number, deltaMode = 0) => host.dispatchEvent(new WheelEvent('wheel', { deltaY, deltaMode, cancelable: true }));
+      /** Runs a frame at the given time in milliseconds. */
+      const at = (ms: number) => {
+        now.mockReturnValue(ms);
+        frames.frame(ms);
+      };
+      return { ...created, now, host, send, wheel, at };
+    }
+
+    it('turns the item with a drag, and tips it forwards or back, though never past on its back', async () => {
+      const { scene, send, at } = await playWith(1);
+      const { x, y } = scene.itemRot;
+      send('pointerdown', { x: 0, y: 0 });
+      send('pointermove', { x: 100, y: 50, time: 16 });
+      at(0);
+      const loaded = scene['model']!;
+      expect(loaded.rotation.y).toBeCloseTo(y + 1);
+      expect(loaded.rotation.x).toBeCloseTo(x + 0.5);
+      send('pointermove', { x: 100, y: 1000, time: 32 });
+      at(0);
+      expect(loaded.rotation.x).toBeCloseTo(x + 1.2);
+    });
+
+    it('keeps spinning after a flick, slowing down to a stop, and a press catches it', async () => {
+      const { scene, send, at, now } = await playWith();
+      send('pointerdown', { x: 0 });
+      send('pointermove', { x: 50, time: 16 });
+      now.mockReturnValue(40);
+      send('pointerup', { x: 50, time: 40 });
+      expect(scene['spinSpeed']).toBe(12);
+      at(1000);
+      const spin = scene['spin'];
+      expect(spin).toBeGreaterThan(0.5);
+      at(2000);
+      expect(scene['spin'] - spin).toBeLessThan(spin - 0.5);
+      // Stopped, in the end
+      for (let t = 3; t < 10; t++) at(t * 1000);
+      expect(scene['spinSpeed']).toBe(0);
+
+      send('pointerdown', { x: 0, time: 20_000 });
+      send('pointermove', { x: 50, time: 20_016 });
+      send('pointerup', { x: 50, time: 20_040 });
+      send('pointerdown', { x: 0, time: 20_100 });
+      expect(scene['spinSpeed']).toBe(0);
+    });
+
+    it('stops drifting and turning by itself while held, and carries on when let go', async () => {
+      const { scene, send, at, now } = await playWith();
+      at(1000);
+      const position = scene.itemPos.clone();
+      const rotation = scene.itemRot.y;
+      send('pointerdown', { x: 0 });
+      at(2000);
+      at(3000);
+      expect(scene.itemPos).toEqual(position);
+      expect(scene.itemRot.y).toBe(rotation);
+      now.mockReturnValue(3000);
+      send('pointerup', { x: 0, time: 3000 });
+      at(4000);
+      expect(scene.itemPos.distanceTo(position)).toBeCloseTo(0.66, 1);
+      expect(scene.itemRot.y).toBeGreaterThan(rotation);
+    });
+
+    it('holds the Perlin sphere still while held, though it keeps rippling', async () => {
+      const { scene, send, at } = await playWith(PERLIN);
+      at(1000);
+      const sphere = scene['mesh']!;
+      const tumble = sphere.rotation.z;
+      send('pointerdown', { x: 0 });
+      at(2000);
+      expect(sphere.rotation.z).toBe(tumble);
+      expect(scene['uniform']['u_time'].value).toBeCloseTo(2);
+    });
+
+    it("doesn't flick when the pointer was held still before letting go", async () => {
+      const { scene, send, now } = await playWith();
+      send('pointerdown', { x: 0 });
+      send('pointermove', { x: 50, time: 16 });
+      now.mockReturnValue(500);
+      send('pointerup', { x: 50, time: 500 });
+      expect(scene['spinSpeed']).toBe(0);
+    });
+
+    it('brings the item in with the wheel, along the line from the camera, which stays put with the fog', async () => {
+      const { scene, wheel, at } = await playWith();
+      const camera = scene['camera'];
+      const loaded = scene['model']!;
+      // jsdom lays nothing out, so the canvas has no shape of its own
+      camera.aspect = 16 / 9;
+      camera.updateProjectionMatrix();
+      const home = camera.position.clone();
+
+      // Pulled all the way in, and the page doesn't zoom
+      expect(wheel(-1000)).toBe(false);
+      at(100);
+      // Gliding there...
+      expect(loaded.position.distanceTo(home)).toBeGreaterThan(scene.itemPos.distanceTo(home) * 0.41);
+      at(2000);
+      expect(loaded.position.distanceTo(home)).toBeCloseTo(scene.itemPos.distanceTo(home) * 0.4);
+      expect(camera.position).toEqual(home);
+      // ...where it was on the screen
+      camera.updateMatrixWorld();
+      const zoomed = loaded.position.clone().project(camera);
+      const usual = scene.itemPos.clone().project(camera);
+      expect(zoomed.x).toBeCloseTo(usual.x);
+      expect(zoomed.y).toBeCloseTo(usual.y);
+    });
+
+    it("brings in the middle of the model, however it's turned, not the point it's placed by", async () => {
+      // A model standing on its origin, its middle 10 units up
+      const tall = model().scene;
+      tall.children[0].position.set(0, 10, 0);
+      const { scene, send, wheel, at } = await playWith(0, tall);
+      send('pointerdown', { x: 0 });
+      send('pointermove', { x: 80, y: 60, time: 16 });
+      wheel(-1000);
+      at(5000);
+      const camera = scene['camera'].position;
+      const middle = tall.localToWorld(new Vector3(0, 10, 0));
+      // Where its middle would be without the zoom
+      const unzoomed = tall.clone();
+      unzoomed.position.copy(scene.itemPos);
+      unzoomed.updateMatrixWorld();
+      const usual = unzoomed.localToWorld(new Vector3(0, 10, 0));
+      expect(middle.clone().sub(camera).distanceTo(usual.clone().sub(camera).multiplyScalar(0.4))).toBeCloseTo(0);
+    });
+
+    it('has nothing to zoom until the model has loaded', async () => {
+      stubMatchMedia(REDUCED_MOTION);
+      const { scene, el } = await create(0);
+      el.querySelector('.canvas-host')!.dispatchEvent(new WheelEvent('wheel', { deltaY: -1000 }));
+      frames.frame(16);
+      expect(scene['camera'].position).toEqual(scene.camPosition());
+    });
+
+    it('sends the item away with the wheel, in pixels or lines, but only so far', async () => {
+      const { scene, wheel } = await playWith();
+      wheel(3, WheelEvent.DOM_DELTA_LINE);
+      expect(scene['zoomTarget']).toBeCloseTo(Math.exp(120 * 0.0015));
+      wheel(5000);
+      expect(scene['zoomTarget']).toBe(1.6);
+    });
+
+    it('zooms with a pinch', async () => {
+      const { scene, send } = await playWith();
+      send('pointerdown', { id: 1, x: 100 });
+      send('pointerdown', { id: 2, x: 200 });
+      send('pointermove', { id: 2, x: 300 });
+      expect(scene['zoomTarget']).toBe(0.5);
+    });
+
+    it('jumps rather than glides with reduced motion, and a flick stops dead', async () => {
+      stubMatchMedia(REDUCED_MOTION);
+      const { scene, send, wheel, at, now } = await playWith();
+      wheel(-200);
+      at(16);
+      expect(scene['zoom']).toBe(scene['zoomTarget']);
+      send('pointerdown', { x: 0 });
+      send('pointermove', { x: 50, time: 16 });
+      now.mockReturnValue(20);
+      send('pointerup', { x: 50, time: 20 });
+      at(32);
+      expect(scene['spinSpeed']).toBe(0);
+    });
+
+    it('turns and zooms the Perlin sphere too, about its middle', async () => {
+      const { scene, send, wheel, at } = await playWith(PERLIN);
+      send('pointerdown', { x: 0 });
+      send('pointermove', { x: 100, time: 16 });
+      wheel(-1000);
+      at(5000);
+      const sphere = scene['mesh']!;
+      expect(sphere.rotation.y).toBeCloseTo(1);
+      expect(sphere.position.z).toBeCloseTo(80 * 0.6);
+      expect(scene['camera'].position.z).toBe(80);
+    });
+
+    it('starts each new item the right way up, at the usual distance', async () => {
+      const { scene, send, wheel } = await playWith();
+      send('pointerdown', { x: 0 });
+      send('pointermove', { x: 100, y: 100, time: 16 });
+      wheel(-500);
+      scene.onLoaded();
+      expect([scene['spin'], scene['tilt'], scene['spinSpeed'], scene['zoomTarget']]).toEqual([0, 0, 0, 1]);
+    });
+
+    it("doesn't swap the item for the next while someone is playing with it", async () => {
+      const { scene, send, at, now } = await playWith();
+      // To the target, which starts the countdown to the next item
+      for (let t = 1; t < 60; t++) at(t * 1000);
+      const item = scene.itemIndex();
+
+      // Still holding it
+      send('pointerdown', { x: 0 });
+      now.mockReturnValue(500_000);
+      vi.advanceTimersByTime(15_000);
+      expect(scene.itemIndex()).toBe(item);
+      // Let go only just now
+      send('pointerup', { x: 0, time: 500_000 });
+      vi.advanceTimersByTime(15_000);
+      expect(scene.itemIndex()).toBe(item);
+      // Left alone long enough
+      now.mockReturnValue(520_000);
+      vi.advanceTimersByTime(15_000);
+      expect(scene.itemIndex()).not.toBe(item);
+    });
+
+    it('stops listening when destroyed', async () => {
+      const { fixture, host } = await playWith();
+      const remove = vi.spyOn(host, 'removeEventListener');
+      fixture.destroy();
+      expect(remove).toHaveBeenCalledWith('wheel', expect.any(Function));
+      expect(remove).toHaveBeenCalledWith('pointerdown', expect.any(Function));
+    });
   });
 });

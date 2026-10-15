@@ -147,6 +147,7 @@
 /* Short landscape screens (a phone on its side): the card and links side by side, no readouts */
 @media (max-height: 500px) and (min-aspect-ratio: 1/1) {
     .screen { grid-template: "card console" 1fr / minmax(0, 1fr) auto; padding: 60px 24px 48px; }
-    .card { --card-size: clamp(32px, 7vw, 60px); }
+    /* By height too, and long titles in wider lines, so even the longest leaves the banner clear */
+    .card { --card-size: clamp(28px, min(7vw, 14vh), 60px); --title-width: 22em; }
     .hud { display: none; }
 }

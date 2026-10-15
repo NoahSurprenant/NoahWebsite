@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { fakeCanvas, manualFrames } from '../../testing/canvas';
 import { REDUCED_MOTION, stubMatchMedia } from '../../testing/match-media';
+import { pointer } from '../../testing/pointer';
 import { XboxThemeComponent } from './xbox-theme.component';
 
 /** Gives an element the layout jsdom can't compute. */
@@ -171,5 +172,115 @@ describe('XboxThemeComponent', () => {
     expect(frames.pending).toBe(0);
     expect(calls.lost).toBe(true);
     expect(remove).toHaveBeenCalledWith('resize', expect.any(Function));
+  });
+
+  describe('playing with the orb', () => {
+    /** The orb 200px across, centred on 200, 200, and the clock at 0. */
+    async function play({ webgl = true } = {}) {
+      const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+      const created = await create({ webgl });
+      place(created.orb, { left: 100, top: 100, width: 200, height: 200 });
+      const send = (type: string, options: Parameters<typeof pointer>[1] = {}) => created.orb.dispatchEvent(pointer(type, options));
+      /** Runs a frame at the given time in milliseconds, and returns what the shader was told. */
+      const at = (ms: number) => {
+        now.mockReturnValue(ms);
+        created.frames.frame(ms);
+        const uniform = (name: string) => created.calls.uniforms.get(name) as number;
+        return { spin: uniform('u_spin'), energy: uniform('u_energy'), pulse: uniform('u_pulse') };
+      };
+      at(0);
+      return { ...created, now, send, at };
+    }
+
+    it('turns the shells with a drag round the orb, like a dial', async () => {
+      stubMatchMedia();
+      const { orb, send, at } = await play();
+      expect(orb.style.cursor).toBe('grab');
+      expect(at(0)).toEqual({ spin: 0, energy: 0, pulse: 100 });
+      // A quarter turn anticlockwise, from 3 o'clock to 12
+      send('pointerdown', { x: 300, y: 200 });
+      send('pointermove', { x: 200, y: 100, time: 100 });
+      expect(at(100).spin).toBeCloseTo(Math.PI / 2);
+      // Across 9 o'clock, where the angle jumps from pi to -pi: still a small turn
+      send('pointermove', { x: 100, y: 199, time: 200 });
+      send('pointermove', { x: 100, y: 201, time: 300 });
+      expect(at(300).spin).toBeCloseTo(Math.PI + Math.atan(1 / 100));
+    });
+
+    it('keeps the shells spinning after a flick, glowing brighter, then slowing; a press stops them', async () => {
+      stubMatchMedia();
+      const { send, at, now } = await play();
+      send('pointerdown', { x: 300, y: 200 });
+      send('pointermove', { x: 200, y: 100, time: 16 });
+      now.mockReturnValue(30);
+      send('pointerup', { x: 200, y: 100, time: 30 });
+      const flung = at(100);
+      expect(flung.energy).toBeGreaterThan(0.9);
+      const later = at(1100);
+      expect(later.spin).toBeGreaterThan(flung.spin);
+      expect(later.energy).toBeLessThan(1);
+
+      send('pointerdown', { x: 300, y: 200, time: 1200 });
+      expect(at(2000).spin).toBe(at(3000).spin);
+    });
+
+    it("doesn't flick when the pointer was held still before letting go", async () => {
+      stubMatchMedia();
+      const { send, at, now } = await play();
+      send('pointerdown', { x: 300, y: 200 });
+      send('pointermove', { x: 200, y: 100, time: 16 });
+      now.mockReturnValue(1000);
+      send('pointerup', { x: 200, y: 100, time: 1000 });
+      expect(at(1100).energy).toBe(0);
+    });
+
+    it('wobbles and sends out a ripple when tapped, with a nudge round', async () => {
+      stubMatchMedia();
+      const { send, at, now } = await play();
+      now.mockReturnValue(5000);
+      send('pointerdown', { x: 200, y: 200, time: 5000 });
+      send('pointerup', { x: 200, y: 200, time: 5100 });
+      const tapped = at(5000);
+      expect(tapped.pulse).toBe(0);
+      expect(tapped.energy).toBeGreaterThan(0);
+      expect(at(5500).pulse).toBe(0.5);
+    });
+
+    it('keeps still with reduced motion: no ripple and no flick, only what the pointer turns', async () => {
+      stubMatchMedia(REDUCED_MOTION);
+      const { send, at, now } = await play();
+      send('pointerdown', { x: 200, y: 200 });
+      send('pointerup', { x: 200, y: 200, time: 50 });
+      expect(at(100).pulse).toBe(100);
+      send('pointerdown', { x: 300, y: 200 });
+      send('pointermove', { x: 200, y: 100, time: 16 });
+      now.mockReturnValue(20);
+      send('pointerup', { x: 200, y: 100, time: 20 });
+      const letGo = at(30);
+      expect(letGo.spin).toBeCloseTo(Math.PI / 2);
+      expect(letGo.energy).toBe(0);
+    });
+
+    it('keeps the selection on the menu when the orb is pressed', async () => {
+      stubMatchMedia();
+      const { orb } = await play();
+      expect(orb.dispatchEvent(new MouseEvent('mousedown', { cancelable: true }))).toBe(false);
+    });
+
+    it('leaves the CSS orb alone without WebGL', async () => {
+      stubMatchMedia();
+      const { orb, send } = await play({ webgl: false });
+      send('pointerdown', { x: 200, y: 200 });
+      expect(orb.classList.contains('fallback')).toBe(true);
+      expect(orb.style.cursor).toBe('');
+    });
+
+    it('stops listening to the orb when destroyed', async () => {
+      stubMatchMedia();
+      const { fixture, orb } = await play();
+      const remove = vi.spyOn(orb, 'removeEventListener');
+      fixture.destroy();
+      expect(remove).toHaveBeenCalledWith('pointerdown', expect.any(Function));
+    });
   });
 });

@@ -1,11 +1,12 @@
 import { AfterViewInit, Component, computed, effect, ElementRef, OnDestroy, OnInit, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
-import { DirectionalLight, Euler, IcosahedronGeometry, IUniform, Mesh, Object3D, PerspectiveCamera, Scene, ShaderMaterial, Texture, Timer, Vector2, Vector3, WebGLRenderer } from 'three';
+import { Box3, DirectionalLight, Euler, IcosahedronGeometry, IUniform, Mesh, Object3D, PerspectiveCamera, Scene, ShaderMaterial, Texture, Timer, Vector2, Vector3, WebGLRenderer } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ASSET_PATH } from '../assets';
 import { Fog } from '../fog/fog';
 import { Item } from '../item';
 import { getGPUTier } from 'detect-gpu';
+import { Gestures } from '../themes/gestures';
 
 // An unrecognised GPU gets the fog on trial: it stays if the frames over this long, once every
 // puff is in, average 40fps or better. One frame slower than the last ends the trial at once.
@@ -15,6 +16,18 @@ const STALL_MS = 100;
 // GPU names that mean there is no GPU, the drawing is done on the CPU: no fog. detect-gpu's own
 // blocklist misses how Chromium names SwiftShader now ("Google, SwiftShader Device (Subzero)")
 const SOFTWARE_RENDERER = /swiftshader|llvmpipe|softpipe|basic render|software/i;
+
+// Turning and zooming by hand, as on the game's loading screens. Radians of turn per pixel dragged;
+// how far it tips forwards or back at most; and its distance from the camera, as a fraction of the usual.
+const TURN_PER_PX = 0.01;
+const MAX_TILT = 1.2;
+const MIN_ZOOM = 0.4;
+const MAX_ZOOM = 1.6;
+// A flick keeps it spinning, slowing by this much per second, and never faster than MAX_SPIN
+const SPIN_FRICTION = 2.5;
+const MAX_SPIN = 12;
+// The item stays at least this long after it was last touched, before the next can replace it
+const IDLE_MS = 10_000;
 
 // Example of smoke with three.js
 // https://codepen.io/sbrl/pen/zNdqdd?editors=0110
@@ -50,6 +63,8 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
   private readonly camera = new PerspectiveCamera();
   private readonly gltfLoader = new GLTFLoader();
   private model?: Object3D;
+  // The middle of the model's bounding box, in its own coordinates: what zooming brings closer
+  private readonly modelCentre = new Vector3();
   private fog?: Fog;
   // Frame times while the fog is on trial, and the last frame's time to measure them from
   private fogTrial?: number[];
@@ -61,6 +76,18 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
   // Honour the OS "reduce motion" setting: keep the scene, but hold it still.
   // `matches` is live, so checking it every frame also picks up changes while the page is open.
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  // Input: drags turn the item (spin about the vertical, tilt about the horizontal) and the wheel or a
+  // pinch brings it closer or sends it away. Zoom eases towards zoomTarget.
+  private gestures?: Gestures;
+  private dragging = false;
+  private spin = 0;
+  private tilt = 0;
+  private spinSpeed = 0;
+  private lastDrag = 0;
+  private zoom = 1;
+  private zoomTarget = 1;
+  private lastTouched = -Infinity;
 
   // Responsive camera positioning
   private aspectRatio = signal<number>(window.innerWidth / window.innerHeight);
@@ -78,6 +105,7 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
     this.scene.add(this.camera);
     this.gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 
+    // The camera stays put whatever is done to the item, so the fog behind it does too
     effect(() => {
       this.camera.position.copy(this.camPosition());
       this.camera.lookAt(this.lookAtPosition());
@@ -224,6 +252,7 @@ void main() {
     if (this.destroyed) return;
     host.appendChild(this.renderer.domElement);
     this.watchPixelRatio();
+    this.listenForInput(host);
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
@@ -250,6 +279,52 @@ void main() {
     if (unknown) this.fogTrial = [];
     // The fog lowers the pixel ratio cap
     this.resize();
+  }
+
+  private listenForInput(host: HTMLElement) {
+    this.gestures = new Gestures(host, {
+      press: () => {
+        this.dragging = true;
+        // Catching it stops a spin
+        this.spinSpeed = 0;
+        this.touched();
+      },
+      drag: (dx, dy, event) => {
+        this.spin += dx * TURN_PER_PX;
+        this.tilt = clamp(this.tilt + dy * TURN_PER_PX, -MAX_TILT, MAX_TILT);
+        // The spin speed so far, smoothed over the last few moves, for when it's let go
+        const seconds = Math.max(event.timeStamp - this.lastDrag, 1) / 1000;
+        this.spinSpeed = clamp(0.6 * this.spinSpeed + 0.4 * dx * TURN_PER_PX / seconds, -MAX_SPIN, MAX_SPIN);
+        this.lastDrag = event.timeStamp;
+        this.touched();
+      },
+      pinch: (scale) => this.zoomBy(scale),
+      release: () => {
+        this.dragging = false;
+        // Held still before letting go: no flick
+        if (performance.now() - this.lastDrag > 100) this.spinSpeed = 0;
+        this.touched();
+      },
+    });
+    host.addEventListener('wheel', this.onWheel, { passive: false });
+  }
+
+  private onWheel = (event: WheelEvent) => {
+    // Otherwise the page would zoom (with ctrl, as a trackpad pinch arrives)
+    event.preventDefault();
+    // In lines (Firefox, some mice) rather than pixels
+    const pixels = event.deltaY * (event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 40 : 1);
+    this.zoomBy(Math.exp(-pixels * 0.0015));
+  };
+
+  /** Brings the item closer (factor above 1) or sends it away. */
+  private zoomBy(factor: number) {
+    this.zoomTarget = clamp(this.zoomTarget / factor, MIN_ZOOM, MAX_ZOOM);
+    this.touched();
+  }
+
+  private touched() {
+    this.lastTouched = performance.now();
   }
 
   // A hidden tab gets no frames: the gap until it's back isn't a slow frame
@@ -332,6 +407,8 @@ void main() {
       }
       this.removeModel();
       this.model = gltf.scene;
+      // Measured before it's moved, scaled or turned, so world and model coordinates are the same
+      new Box3().setFromObject(this.model).getCenter(this.modelCentre);
       this.scene.add(this.model);
       this.onLoaded();
     });
@@ -373,6 +450,12 @@ void main() {
       disposeObject(this.model);
       this.model = undefined;
     }
+  }
+
+  // Moves on to the next item, unless someone is playing with this one
+  private autoAdvance() {
+    if (this.dragging || performance.now() - this.lastTouched < IDLE_MS) return;
+    this.toggle();
   }
 
   public toggle() {
@@ -417,6 +500,8 @@ void main() {
     this.destroyed = true;
     if (this.frameId !== undefined) cancelAnimationFrame(this.frameId);
     this.resizeObserver?.disconnect();
+    this.gestures?.dispose();
+    this.canvasHost().nativeElement.removeEventListener('wheel', this.onWheel);
     this.timer.dispose();
     disposeObject(this.scene);
     // The Perlin mesh isn't in the scene yet if we left while its shaders compiled
@@ -558,24 +643,59 @@ void main() {
     
     this.TargetPos = this.getNewTarget();
     this.moving = true;
+    // A new item starts the right way up, at the usual distance
+    this.spin = this.tilt = this.spinSpeed = 0;
+    this.zoomTarget = 1;
   }
 
   // Seconds of animation so far, only advances while motion is allowed
   private motionTime = 0;
+  // The same, but standing still while the item is held: its own drift and turning wait for it to be let go
+  private driftTime = 0;
+
+  /**
+   * Zooming brings the item towards the camera, along the line from the camera to its middle, so it
+   * grows where it is on the screen while the camera, and the fog, stay put. Models are placed by a
+   * point that is often at their feet, so it's the middle of their bounding box, however it's turned.
+   */
+  private zoomItem() {
+    if (this.item().perlin) {
+      // The sphere's middle is the origin
+      this.mesh?.position.copy(this.camera.position).multiplyScalar(1 - this.zoom);
+      return;
+    }
+    if (!this.model) return;
+    this.model.updateMatrixWorld();
+    const middle = this.model.localToWorld(this.modelCentre.clone());
+    this.model.position.add(this.camera.position.clone().sub(middle).multiplyScalar(1 - this.zoom));
+  }
 
   public onBeforeRender() {
     this.timer.update();
     // With reduced motion nothing drifts, spins or wobbles, so animation time stands still
     const reduceMotion = this.reducedMotion.matches;
-    const dt = reduceMotion ? 0 : this.timer.getDelta();
+    const realDt = this.timer.getDelta();
+    const dt = reduceMotion ? 0 : realDt;
     this.motionTime += dt;
+    const drift = this.dragging ? 0 : dt;
+    this.driftTime += drift;
+
+    // A flicked item spins on, slowing down
+    if (!this.dragging && this.spinSpeed !== 0) {
+      this.spin += this.spinSpeed * dt;
+      this.spinSpeed *= Math.exp(-SPIN_FRICTION * dt);
+      if (Math.abs(this.spinSpeed) < 0.01 || reduceMotion) this.spinSpeed = 0;
+    }
+    // The item glides in and out, or jumps with reduced motion
+    this.zoom = reduceMotion ? this.zoomTarget : this.zoomTarget + (this.zoom - this.zoomTarget) * Math.exp(-realDt * 8);
 
     if (this.item().perlin) {
       this.uniform['u_time'].value = this.motionTime;
 
       if (this.mesh != null) {
-        this.mesh.rotation.x = this.motionTime * 0.1;
-        this.mesh.rotation.z = this.motionTime * 0.1;
+        this.mesh.rotation.x = this.driftTime * 0.1 + this.tilt;
+        this.mesh.rotation.y = this.spin;
+        this.mesh.rotation.z = this.driftTime * 0.1;
         this.mesh.visible = true;
       }
     } else {
@@ -589,7 +709,7 @@ void main() {
 
     // Slowly rotate
     if (this.item().shouldRotate) {
-      this.itemRot = new Euler(this.itemRot.x, this.itemRot.y + this.rotateAmt * dt, this.itemRot.z);
+      this.itemRot = new Euler(this.itemRot.x, this.itemRot.y + this.rotateAmt * drift, this.itemRot.z);
     }
 
     if (this.moving && this.TargetPos !== undefined && this.OriginalPos !== undefined) {
@@ -599,8 +719,8 @@ void main() {
       const direction = targetPos.clone().sub(currentPos).normalize();
 
       // Never step past the target, a long frame would otherwise overshoot it.
-      // With reduced motion, skip the glide and appear at the target straight away.
-      const maxStep = reduceMotion ? Infinity : this.moveAmt * dt;
+      // With reduced motion, skip the glide and appear at the target straight away. Held, it waits.
+      const maxStep = this.dragging ? 0 : reduceMotion ? Infinity : this.moveAmt * dt;
       const step = Math.min(maxStep, currentPos.distanceTo(targetPos));
       currentPos.addScaledVector(direction, step);
 
@@ -608,7 +728,7 @@ void main() {
         currentPos = targetPos;
         this.moving = false;
         let millis = this.GetRandomInt(this.MIN_MS, this.MAX_MS);
-        this.intervalHandle = window.setInterval(() => this.toggle(), millis);
+        this.intervalHandle = window.setInterval(() => this.autoAdvance(), millis);
       }
 
       this.itemPos = currentPos;
@@ -616,10 +736,17 @@ void main() {
 
     if (this.model) {
       this.model.position.copy(this.itemPos);
-      this.model.rotation.copy(this.itemRot);
+      // Euler angles apply Y first, so the tilt is always towards or away from the camera
+      this.model.rotation.set(this.itemRot.x + this.tilt, this.itemRot.y + this.spin, this.itemRot.z);
       this.model.scale.copy(this.itemScale);
     }
+
+    this.zoomItem();
   }
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function disposeObject(object: Object3D) {

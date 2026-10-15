@@ -1,6 +1,7 @@
 // The dashboard's backdrop: green, as if from inside a globe ruled with longitude and latitude
 // lines and tiled with hexagons, and the orb: a yellow core in green glass, wrapped in curled
-// glass shells. Units are screen heights, origin bottom left.
+// glass shells, which can be played with: dragging it round spins the shells, and a tap makes it
+// wobble and sends a ripple of light out over the globe. Units are screen heights, origin bottom left.
 export const XBOX_SHADER = `
 precision highp float;
 uniform vec2 u_resolution;
@@ -8,6 +9,9 @@ uniform float u_time;
 uniform vec2 u_orb;      // orb centre
 uniform float u_radius;  // orb radius
 uniform float u_intro;   // 0 to 1 over the first moments: the orb swells in
+uniform float u_spin;    // how far the shells have been turned round, in radians
+uniform float u_energy;  // 0 to 1: how fast they're spinning
+uniform float u_pulse;   // seconds since the orb was last tapped
 
 const float PI = 3.14159265;
 // How wide the view is, across the screen's longer side: a wide-angle (fisheye) lens, which is what
@@ -71,14 +75,22 @@ void main() {
   float mercator = log(tan(PI / 4.0 + lat / 2.0));
   float meshLines = 1.0 - smoothstep(px * 0.4, px * 1.3, hexEdge(vec2(lon, mercator) / hex) * hex * cos(lat));
 
+  // A tap: a ring of light running out from the orb, lighting the lines as it passes
+  float wave = smoothstep(0.06, 0.0, abs(length(uv - u_orb) - u_radius - u_pulse * 0.9)) * exp(-u_pulse * 1.2);
+  globeLines *= 1.0 + 3.0 * wave;
+  meshLines *= 1.0 + 4.0 * wave;
+
   // Darker in the middle, greener towards the edges
   vec3 col = mix(vec3(0.02, 0.10, 0.015), vec3(0.06, 0.22, 0.04), smoothstep(0.05, 0.65, length(s)));
   col += vec3(0.34, 0.80, 0.22) * globeLines * 0.32;
   col += vec3(0.24, 0.62, 0.15) * meshLines * 0.26;
+  col += vec3(0.4, 0.9, 0.25) * wave * 0.12;
 
   // The orb
-  float radius = u_radius * (u_intro * u_intro * (3.0 - 2.0 * u_intro));
-  vec2 q = (uv - u_orb) / max(radius, 1e-4);
+  // ... which wobbles like jelly after a tap, squashing one way then the other
+  float jelly = sin(u_pulse * 18.0) * exp(-u_pulse * 3.5);
+  float radius = u_radius * (u_intro * u_intro * (3.0 - 2.0 * u_intro)) * (1.0 - 0.04 * jelly);
+  vec2 q = (uv - u_orb) / max(radius, 1e-4) * vec2(1.0 + 0.07 * jelly, 1.0 - 0.07 * jelly);
   float d = length(q);
   float ang = atan(q.y, q.x);
 
@@ -100,26 +112,29 @@ void main() {
     vec3 n = vec3(q, z);
     float spec = pow(max(dot(n, normalize(vec3(-0.5, 0.6, 0.8))), 0.0), 30.0);
     sphere += spec * 0.2 + 0.05 * sin(t * 1.6);
+    // Flaring up when tapped, and the faster it spins
+    sphere += vec3(0.5, 0.6, 0.2) * (exp(-u_pulse * 4.0) * 0.5 + u_energy * 0.15);
     col = mix(col, sphere, smoothstep(1.0, 0.97, d));
   }
 
   // Curled glass shells wrapped round it, swaying slowly: a crescent under it, a crumpled frond
   // round its right side, and a big faint arc over the top left
   float sway = sin(t * 0.25);
-  vec2 bottom = shell(d, ang, -1.85 + 0.1 * sway, 2.7, 0.86, 0.32, 0.0, t);
-  vec2 frond = shell(d, ang, 0.1 - 0.12 * sway, 2.4, 0.88, 0.34, 0.06, t * 0.7);
-  vec2 arc = shell(d, ang, 2.25 + 0.08 * sway, 2.1, 1.1, 0.3, 0.0, t);
+  float spun = ang - u_spin;
+  vec2 bottom = shell(d, spun, -1.85 + 0.1 * sway, 2.7, 0.86, 0.32, 0.0, t);
+  vec2 frond = shell(d, spun, 0.1 - 0.12 * sway, 2.4, 0.88, 0.34, 0.06, t * 0.7);
+  vec2 arc = shell(d, spun, 2.25 + 0.08 * sway, 2.1, 1.1, 0.3, 0.0, t);
   col = mix(col, vec3(0.62, 0.95, 0.36), (bottom.x * 0.55 + frond.x * 0.5 + arc.x * 0.22) * u_intro);
-  col += vec3(0.8, 1.0, 0.55) * (bottom.y * 0.8 + frond.y * 0.9 + arc.y * 0.45) * u_intro;
+  col += vec3(0.8, 1.0, 0.55) * (bottom.y * 0.8 + frond.y * 0.9 + arc.y * 0.45) * (1.0 + u_energy) * u_intro;
   // Crinkles of light across the frond
-  col += vec3(0.5, 0.9, 0.3) * frond.x * pow(0.5 + 0.5 * sin(ang * 30.0 + d * 12.0 + t), 6.0) * 0.35 * u_intro;
+  col += vec3(0.5, 0.9, 0.3) * frond.x * pow(0.5 + 0.5 * sin(spun * 30.0 + d * 12.0 + t), 6.0) * 0.35 * u_intro;
   // A faint halo ring, and streaks trailing off to the left
   col += vec3(0.3, 0.7, 0.15) * smoothstep(0.04, 0.0, abs(d - 1.6)) * 0.18 * u_intro;
   float streaks = smoothstep(-0.95, -1.05, q.x) * smoothstep(-2.6, -1.4, q.x) * smoothstep(0.35, 0.0, abs(q.y + 0.1));
   col += vec3(0.4, 0.85, 0.2) * streaks * pow(0.5 + 0.5 * sin(q.y * 55.0), 8.0) * 0.25 * u_intro;
 
   // Its glow
-  col += vec3(0.6, 0.9, 0.2) * 0.22 / (max(d - 1.0, 0.0) * 5.0 + 0.6) * step(0.98, d) * u_intro;
+  col += vec3(0.6, 0.9, 0.2) * 0.22 * (1.0 + u_energy + exp(-u_pulse * 3.0)) / (max(d - 1.0, 0.0) * 5.0 + 0.6) * step(0.98, d) * u_intro;
 
   // Fade in from black
   col *= smoothstep(0.0, 0.4, u_intro);
