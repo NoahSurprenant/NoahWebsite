@@ -1,6 +1,7 @@
 <div #dashboard class="dashboard">
     <div #backdrop class="backdrop" aria-hidden="true"></div>
-    <div #orb class="orb" aria-hidden="true"></div>
+    <!-- Pressing the orb mustn't take the focus, and with it the selection, off the menu -->
+    <div #orb class="orb" aria-hidden="true" (mousedown)="$event.preventDefault()"></div>
 
     <h1 #heading class="name">{{ name }}</h1>
 

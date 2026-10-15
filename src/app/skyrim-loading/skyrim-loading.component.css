@@ -1,7 +1,14 @@
+/* Drag to turn the item, wheel or pinch to zoom: the page itself mustn't scroll or zoom instead */
 .canvas-host {
     display: flex;
     line-height: 0;
     height: 100%;
+    touch-action: none;
+    cursor: grab;
+}
+
+.canvas-host:active {
+    cursor: grabbing;
 }
 
 .canvas-host canvas {
@@ -11,7 +18,9 @@
     height: 100%;
 }
 
+/* Drags that start on the caption still reach the item */
 .caption {
+    pointer-events: none;
     position: absolute;
     bottom: 80px;
     right: 80px;

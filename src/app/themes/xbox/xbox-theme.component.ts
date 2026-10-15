@@ -1,5 +1,6 @@
 import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, viewChild } from '@angular/core';
 import { LINKS, NAME } from '../../links';
+import { Gestures } from '../gestures';
 import { ShaderCanvas } from '../shader-canvas';
 import { SelectHintComponent } from './select-hint.component';
 import { XBOX_SHADER } from './xbox-backdrop';
@@ -9,6 +10,11 @@ const INTRO_MS = 1600;
 const MAX_RADIUS = 0.24;
 // Width the orb and its petals take up, in orb diameters
 const PETAL_SPAN = 1.6;
+// Spun round by hand, the shells slow down by this much per second, and never go faster than
+// MAX_SPIN radians a second. A tap gives them a nudge too.
+const SPIN_FRICTION = 0.8;
+const MAX_SPIN = 14;
+const TAP_SPIN = 2.5;
 
 /** The original Xbox dashboard's main menu: the glowing orb, and pods wired to bars. */
 @Component({
@@ -33,6 +39,15 @@ export class XboxThemeComponent implements AfterViewInit, OnDestroy {
   private shader?: ShaderCanvas;
   // In the shader's units: screen heights, from the bottom left
   private orb = { x: 0, y: 0, radius: 0 };
+  private gestures?: Gestures;
+  private readonly still = window.matchMedia('(prefers-reduced-motion: reduce)');
+  // The shells' turn and speed, in radians; when the orb was last tapped; the last frame and drag
+  private spin = 0;
+  private spinSpeed = 0;
+  private dragging = false;
+  private tappedAt = -Infinity;
+  private lastFrame?: number;
+  private lastDrag = 0;
 
   ngAfterViewInit() {
     this.layout();
@@ -46,18 +61,73 @@ export class XboxThemeComponent implements AfterViewInit, OnDestroy {
     document.fonts?.ready.then(this.layout);
 
     const start = performance.now();
-    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const still = this.still.matches;
     this.shader = new ShaderCanvas(this.backdrop().nativeElement, XBOX_SHADER, () => ({
       u_orb: [this.orb.x, this.orb.y],
       u_radius: this.orb.radius,
       u_intro: still ? 1 : Math.min((performance.now() - start) / INTRO_MS, 1),
+      ...this.play(),
     }), 12);
-    if (!this.shader.running) this.orbSlot().nativeElement.classList.add('fallback');
+    if (!this.shader.running) {
+      this.orbSlot().nativeElement.classList.add('fallback');
+      return;
+    }
+    // The shader's orb can be spun round and tapped (the page mustn't scroll instead)
+    Object.assign(this.orbSlot().nativeElement.style, { touchAction: 'none', cursor: 'grab' });
+    this.gestures = new Gestures(this.orbSlot().nativeElement, {
+      press: () => {
+        this.dragging = true;
+        this.spinSpeed = 0;
+      },
+      drag: this.turn,
+      tap: () => {
+        if (this.still.matches) return;
+        this.tappedAt = performance.now();
+        this.spinSpeed += TAP_SPIN;
+      },
+      release: () => {
+        this.dragging = false;
+        // Held still before letting go, or with reduced motion: no flick
+        if (this.still.matches || performance.now() - this.lastDrag > 100) this.spinSpeed = 0;
+      },
+    });
+  }
+
+  /** Dragging round the orb turns its shells with the pointer, like a dial. */
+  private turn = (dx: number, dy: number, event: PointerEvent) => {
+    const box = this.orbSlot().nativeElement.getBoundingClientRect();
+    const cx = box.left + box.width / 2, cy = box.top + box.height / 2;
+    // Angles with y up, as in the shader
+    const before = Math.atan2(cy - event.clientY + dy, event.clientX - dx - cx);
+    const after = Math.atan2(cy - event.clientY, event.clientX - cx);
+    // The short way round, across the jump from pi to -pi
+    const turn = (after - before + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
+    this.spin += turn;
+    const seconds = Math.max(event.timeStamp - this.lastDrag, 1) / 1000;
+    this.spinSpeed = Math.min(Math.max(0.6 * this.spinSpeed + 0.4 * turn / seconds, -MAX_SPIN), MAX_SPIN);
+    this.lastDrag = event.timeStamp;
+  };
+
+  /** Moves the spin on a frame, and tells the shader where the play is at. */
+  private play() {
+    const now = performance.now();
+    const dt = Math.min((now - (this.lastFrame ?? now)) / 1000, 0.1);
+    this.lastFrame = now;
+    if (!this.dragging) {
+      this.spin += this.spinSpeed * dt;
+      this.spinSpeed *= Math.exp(-SPIN_FRICTION * dt);
+    }
+    return {
+      u_spin: this.spin,
+      u_energy: Math.min(Math.abs(this.spinSpeed) / MAX_SPIN, 1),
+      u_pulse: Math.min((now - this.tappedAt) / 1000, 100),
+    };
   }
 
   ngOnDestroy() {
     window.removeEventListener('resize', this.layout);
     this.shader?.dispose();
+    this.gestures?.dispose();
   }
 
   /**
