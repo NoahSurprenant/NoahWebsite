@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, computed, effect, ElementRef, OnDestroy, OnInit, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
-import { DirectionalLight, Euler, IcosahedronGeometry, IUniform, Mesh, Object3D, PerspectiveCamera, Scene, ShaderMaterial, Texture, Timer, Vector2, Vector3, WebGLRenderer } from 'three';
+import { Box3, DirectionalLight, Euler, IcosahedronGeometry, IUniform, Mesh, Object3D, PerspectiveCamera, Scene, ShaderMaterial, Texture, Timer, Vector2, Vector3, WebGLRenderer } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ASSET_PATH } from '../assets';
@@ -63,6 +63,8 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
   private readonly camera = new PerspectiveCamera();
   private readonly gltfLoader = new GLTFLoader();
   private model?: Object3D;
+  // The middle of the model's bounding box, in its own coordinates: what the camera zooms towards
+  private readonly modelCentre = new Vector3();
   private fog?: Fog;
   // Frame times while the fog is on trial, and the last frame's time to measure them from
   private fogTrial?: number[];
@@ -400,6 +402,8 @@ void main() {
       }
       this.removeModel();
       this.model = gltf.scene;
+      // Measured before it's moved, scaled or turned, so world and model coordinates are the same
+      new Box3().setFromObject(this.model).getCenter(this.modelCentre);
       this.scene.add(this.model);
       this.onLoaded();
     });
@@ -643,11 +647,18 @@ void main() {
   private motionTime = 0;
 
   /**
-   * Zooming slides the camera along the line to the item, and keeps it facing the same way, so the
-   * item grows or shrinks where it is on the screen.
+   * Zooming slides the camera along the line to the item's middle, and keeps it facing the same way,
+   * so the item grows or shrinks where it is on the screen. Models are placed by a point that is
+   * often at their feet, so it's the middle of their bounding box, wherever the model has turned.
    */
   private placeCamera() {
-    const focus = this.item().perlin ? new Vector3() : this.itemPos;
+    let focus = this.itemPos;
+    if (this.item().perlin) {
+      focus = new Vector3();
+    } else if (this.model) {
+      this.model.updateMatrixWorld();
+      focus = this.model.localToWorld(this.modelCentre.clone());
+    }
     const home = this.camPosition();
     this.camera.position.copy(home).sub(focus).multiplyScalar(this.zoom).add(focus);
     this.camera.lookAt(this.lookAtPosition().clone().add(this.camera.position).sub(home));
@@ -715,15 +726,15 @@ void main() {
       this.itemPos = currentPos;
     }
 
-    // Once the item has moved, so the camera keeps up with it
-    this.placeCamera();
-
     if (this.model) {
       this.model.position.copy(this.itemPos);
       // Euler angles apply Y first, so the tilt is always towards or away from the camera
       this.model.rotation.set(this.itemRot.x + this.tilt, this.itemRot.y + this.spin, this.itemRot.z);
       this.model.scale.copy(this.itemScale);
     }
+
+    // Once the item has moved, so the camera keeps up with it
+    this.placeCamera();
   }
 }
 

@@ -458,10 +458,10 @@ describe('SkyrimLoadingComponent', () => {
 
   describe('turned and zoomed by hand', () => {
     /** A scene showing a loaded model, with the clock stopped at 0 so nothing drifts by itself. */
-    async function playWith(item = 0) {
+    async function playWith(item = 0, loaded = model().scene) {
       const now = vi.spyOn(performance, 'now').mockReturnValue(0);
       const created = await create(item);
-      if (item !== PERLIN) mocks.state.loads.at(-1)!.onLoad({ scene: model().scene });
+      if (item !== PERLIN) mocks.state.loads.at(-1)!.onLoad({ scene: loaded });
       await flush();
       const host = created.el.querySelector<HTMLElement>('.canvas-host')!;
       const send = (type: string, options: Parameters<typeof pointer>[1] = {}) => host.dispatchEvent(pointer(type, options));
@@ -547,6 +547,32 @@ describe('SkyrimLoadingComponent', () => {
       const unzoomed = scene.itemPos.clone().project(usual());
       expect(zoomed.x).toBeCloseTo(unzoomed.x);
       expect(zoomed.y).toBeCloseTo(unzoomed.y);
+    });
+
+    it("zooms towards the middle of the model, wherever it's turned, not the point it's placed by", async () => {
+      // A model standing on its origin, its middle 10 units up
+      const tall = model().scene;
+      tall.children[0].position.set(0, 10, 0);
+      const { scene, send, wheel, at } = await playWith(0, tall);
+      send('pointerdown', { x: 0 });
+      send('pointermove', { x: 80, y: 60, time: 16 });
+      wheel(-1000);
+      at(5000);
+      const middle = tall.localToWorld(new Vector3(0, 10, 0));
+      const usual = scene.camPosition();
+      const camera = scene['camera'].position;
+      expect(camera.distanceTo(middle)).toBeCloseTo(usual.distanceTo(middle) * 0.4);
+      // On the line from where the camera usually is to the middle
+      expect(camera.clone().sub(middle).normalize().dot(usual.clone().sub(middle).normalize())).toBeCloseTo(1);
+    });
+
+    it('zooms towards where a model will be until it has loaded', async () => {
+      stubMatchMedia(REDUCED_MOTION);
+      vi.spyOn(performance, 'now').mockReturnValue(0);
+      const { scene, el } = await create(0);
+      el.querySelector('.canvas-host')!.dispatchEvent(new WheelEvent('wheel', { deltaY: -1000 }));
+      frames.frame(16);
+      expect(scene['camera'].position.distanceTo(scene.itemPos)).toBeCloseTo(scene.camPosition().distanceTo(scene.itemPos) * 0.4);
     });
 
     it('moves the camera out with the wheel, in pixels or lines, but only so far', async () => {
