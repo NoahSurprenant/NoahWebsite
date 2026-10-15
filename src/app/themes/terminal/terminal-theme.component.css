@@ -119,4 +119,13 @@ kbd {
     .screen {
         padding-inline: 12px;
     }
+    /* Fingers need bigger targets than one line of text, apart from each other and the prompt */
+    .links {
+        gap: 4px 3ch;
+        margin-block: 4px;
+    }
+    .links a {
+        display: inline-block;
+        padding-block: 8px;
+    }
 }
