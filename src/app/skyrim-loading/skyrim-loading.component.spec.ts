@@ -520,36 +520,32 @@ describe('SkyrimLoadingComponent', () => {
       expect(scene['spinSpeed']).toBe(0);
     });
 
-    it('moves the camera in with the wheel, along the line to the item, which stays where it is on the screen', async () => {
+    it('brings the item in with the wheel, along the line from the camera, which stays put with the fog', async () => {
       const { scene, wheel, at } = await playWith();
       const camera = scene['camera'];
+      const loaded = scene['model']!;
       // jsdom lays nothing out, so the canvas has no shape of its own
       camera.aspect = 16 / 9;
       camera.updateProjectionMatrix();
-      // Where the camera would be without the zoom, as the item drifts
-      const usual = () => {
-        const home = camera.clone();
-        home.position.copy(scene.camPosition());
-        home.lookAt(scene.lookAtPosition());
-        home.updateMatrixWorld();
-        return home;
-      };
+      const home = camera.position.clone();
 
       // Pulled all the way in, and the page doesn't zoom
       expect(wheel(-1000)).toBe(false);
       at(100);
       // Gliding there...
-      expect(camera.position.distanceTo(scene.itemPos)).toBeGreaterThan(usual().position.distanceTo(scene.itemPos) * 0.41);
+      expect(loaded.position.distanceTo(home)).toBeGreaterThan(scene.itemPos.distanceTo(home) * 0.41);
       at(2000);
-      expect(camera.position.distanceTo(scene.itemPos)).toBeCloseTo(usual().position.distanceTo(scene.itemPos) * 0.4);
+      expect(loaded.position.distanceTo(home)).toBeCloseTo(scene.itemPos.distanceTo(home) * 0.4);
+      expect(camera.position).toEqual(home);
+      // ...where it was on the screen
       camera.updateMatrixWorld();
-      const zoomed = scene.itemPos.clone().project(camera);
-      const unzoomed = scene.itemPos.clone().project(usual());
-      expect(zoomed.x).toBeCloseTo(unzoomed.x);
-      expect(zoomed.y).toBeCloseTo(unzoomed.y);
+      const zoomed = loaded.position.clone().project(camera);
+      const usual = scene.itemPos.clone().project(camera);
+      expect(zoomed.x).toBeCloseTo(usual.x);
+      expect(zoomed.y).toBeCloseTo(usual.y);
     });
 
-    it("zooms towards the middle of the model, wherever it's turned, not the point it's placed by", async () => {
+    it("brings in the middle of the model, however it's turned, not the point it's placed by", async () => {
       // A model standing on its origin, its middle 10 units up
       const tall = model().scene;
       tall.children[0].position.set(0, 10, 0);
@@ -558,24 +554,25 @@ describe('SkyrimLoadingComponent', () => {
       send('pointermove', { x: 80, y: 60, time: 16 });
       wheel(-1000);
       at(5000);
-      const middle = tall.localToWorld(new Vector3(0, 10, 0));
-      const usual = scene.camPosition();
       const camera = scene['camera'].position;
-      expect(camera.distanceTo(middle)).toBeCloseTo(usual.distanceTo(middle) * 0.4);
-      // On the line from where the camera usually is to the middle
-      expect(camera.clone().sub(middle).normalize().dot(usual.clone().sub(middle).normalize())).toBeCloseTo(1);
+      const middle = tall.localToWorld(new Vector3(0, 10, 0));
+      // Where its middle would be without the zoom
+      const unzoomed = tall.clone();
+      unzoomed.position.copy(scene.itemPos);
+      unzoomed.updateMatrixWorld();
+      const usual = unzoomed.localToWorld(new Vector3(0, 10, 0));
+      expect(middle.clone().sub(camera).distanceTo(usual.clone().sub(camera).multiplyScalar(0.4))).toBeCloseTo(0);
     });
 
-    it('zooms towards where a model will be until it has loaded', async () => {
+    it('has nothing to zoom until the model has loaded', async () => {
       stubMatchMedia(REDUCED_MOTION);
-      vi.spyOn(performance, 'now').mockReturnValue(0);
       const { scene, el } = await create(0);
       el.querySelector('.canvas-host')!.dispatchEvent(new WheelEvent('wheel', { deltaY: -1000 }));
       frames.frame(16);
-      expect(scene['camera'].position.distanceTo(scene.itemPos)).toBeCloseTo(scene.camPosition().distanceTo(scene.itemPos) * 0.4);
+      expect(scene['camera'].position).toEqual(scene.camPosition());
     });
 
-    it('moves the camera out with the wheel, in pixels or lines, but only so far', async () => {
+    it('sends the item away with the wheel, in pixels or lines, but only so far', async () => {
       const { scene, wheel } = await playWith();
       wheel(3, WheelEvent.DOM_DELTA_LINE);
       expect(scene['zoomTarget']).toBeCloseTo(Math.exp(120 * 0.0015));
@@ -611,11 +608,13 @@ describe('SkyrimLoadingComponent', () => {
       send('pointermove', { x: 100, time: 16 });
       wheel(-1000);
       at(5000);
-      expect(scene['mesh']!.rotation.y).toBeCloseTo(1);
-      expect(scene['camera'].position.z).toBeCloseTo(80 * 0.4);
+      const sphere = scene['mesh']!;
+      expect(sphere.rotation.y).toBeCloseTo(1);
+      expect(sphere.position.z).toBeCloseTo(80 * 0.6);
+      expect(scene['camera'].position.z).toBe(80);
     });
 
-    it('starts each new item the right way up, with the camera back where it was', async () => {
+    it('starts each new item the right way up, at the usual distance', async () => {
       const { scene, send, wheel } = await playWith();
       send('pointerdown', { x: 0 });
       send('pointermove', { x: 100, y: 100, time: 16 });

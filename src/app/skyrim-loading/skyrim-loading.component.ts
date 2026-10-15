@@ -18,7 +18,7 @@ const STALL_MS = 100;
 const SOFTWARE_RENDERER = /swiftshader|llvmpipe|softpipe|basic render|software/i;
 
 // Turning and zooming by hand, as on the game's loading screens. Radians of turn per pixel dragged;
-// how far it tips forwards or back at most; and the camera's distance, as a fraction of the usual.
+// how far it tips forwards or back at most; and its distance from the camera, as a fraction of the usual.
 const TURN_PER_PX = 0.01;
 const MAX_TILT = 1.2;
 const MIN_ZOOM = 0.4;
@@ -63,7 +63,7 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
   private readonly camera = new PerspectiveCamera();
   private readonly gltfLoader = new GLTFLoader();
   private model?: Object3D;
-  // The middle of the model's bounding box, in its own coordinates: what the camera zooms towards
+  // The middle of the model's bounding box, in its own coordinates: what zooming brings closer
   private readonly modelCentre = new Vector3();
   private fog?: Fog;
   // Frame times while the fog is on trial, and the last frame's time to measure them from
@@ -78,7 +78,7 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   // Input: drags turn the item (spin about the vertical, tilt about the horizontal) and the wheel or a
-  // pinch moves the camera in and out. Zoom eases towards zoomTarget.
+  // pinch brings it closer or sends it away. Zoom eases towards zoomTarget.
   private gestures?: Gestures;
   private dragging = false;
   private spin = 0;
@@ -105,6 +105,11 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
     this.scene.add(this.camera);
     this.gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 
+    // The camera stays put whatever is done to the item, so the fog behind it does too
+    effect(() => {
+      this.camera.position.copy(this.camPosition());
+      this.camera.lookAt(this.lookAtPosition());
+    });
     effect(() => this.loadItem(this.item()));
   }
 
@@ -312,7 +317,7 @@ void main() {
     this.zoomBy(Math.exp(-pixels * 0.0015));
   };
 
-  /** Moves the camera towards the item (factor above 1) or away from it. */
+  /** Brings the item closer (factor above 1) or sends it away. */
   private zoomBy(factor: number) {
     this.zoomTarget = clamp(this.zoomTarget / factor, MIN_ZOOM, MAX_ZOOM);
     this.touched();
@@ -638,7 +643,7 @@ void main() {
     
     this.TargetPos = this.getNewTarget();
     this.moving = true;
-    // A new item starts the right way up, and the camera goes back
+    // A new item starts the right way up, at the usual distance
     this.spin = this.tilt = this.spinSpeed = 0;
     this.zoomTarget = 1;
   }
@@ -647,21 +652,20 @@ void main() {
   private motionTime = 0;
 
   /**
-   * Zooming slides the camera along the line to the item's middle, and keeps it facing the same way,
-   * so the item grows or shrinks where it is on the screen. Models are placed by a point that is
-   * often at their feet, so it's the middle of their bounding box, wherever the model has turned.
+   * Zooming brings the item towards the camera, along the line from the camera to its middle, so it
+   * grows where it is on the screen while the camera, and the fog, stay put. Models are placed by a
+   * point that is often at their feet, so it's the middle of their bounding box, however it's turned.
    */
-  private placeCamera() {
-    let focus = this.itemPos;
+  private zoomItem() {
     if (this.item().perlin) {
-      focus = new Vector3();
-    } else if (this.model) {
-      this.model.updateMatrixWorld();
-      focus = this.model.localToWorld(this.modelCentre.clone());
+      // The sphere's middle is the origin
+      this.mesh?.position.copy(this.camera.position).multiplyScalar(1 - this.zoom);
+      return;
     }
-    const home = this.camPosition();
-    this.camera.position.copy(home).sub(focus).multiplyScalar(this.zoom).add(focus);
-    this.camera.lookAt(this.lookAtPosition().clone().add(this.camera.position).sub(home));
+    if (!this.model) return;
+    this.model.updateMatrixWorld();
+    const middle = this.model.localToWorld(this.modelCentre.clone());
+    this.model.position.add(this.camera.position.clone().sub(middle).multiplyScalar(1 - this.zoom));
   }
 
   public onBeforeRender() {
@@ -678,7 +682,7 @@ void main() {
       this.spinSpeed *= Math.exp(-SPIN_FRICTION * dt);
       if (Math.abs(this.spinSpeed) < 0.01 || reduceMotion) this.spinSpeed = 0;
     }
-    // The camera glides in and out, or jumps with reduced motion
+    // The item glides in and out, or jumps with reduced motion
     this.zoom = reduceMotion ? this.zoomTarget : this.zoomTarget + (this.zoom - this.zoomTarget) * Math.exp(-realDt * 8);
 
     if (this.item().perlin) {
@@ -733,8 +737,7 @@ void main() {
       this.model.scale.copy(this.itemScale);
     }
 
-    // Once the item has moved, so the camera keeps up with it
-    this.placeCamera();
+    this.zoomItem();
   }
 }
 
