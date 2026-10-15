@@ -23,7 +23,7 @@
 }
 
 .title {
-    max-width: 14em;
+    max-width: var(--title-width, 14em);
     margin-top: 0.1em;
     font-size: 0.42em;
 }
