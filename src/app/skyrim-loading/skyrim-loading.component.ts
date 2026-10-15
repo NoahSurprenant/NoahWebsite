@@ -650,6 +650,8 @@ void main() {
 
   // Seconds of animation so far, only advances while motion is allowed
   private motionTime = 0;
+  // The same, but standing still while the item is held: its own drift and turning wait for it to be let go
+  private driftTime = 0;
 
   /**
    * Zooming brings the item towards the camera, along the line from the camera to its middle, so it
@@ -675,6 +677,8 @@ void main() {
     const realDt = this.timer.getDelta();
     const dt = reduceMotion ? 0 : realDt;
     this.motionTime += dt;
+    const drift = this.dragging ? 0 : dt;
+    this.driftTime += drift;
 
     // A flicked item spins on, slowing down
     if (!this.dragging && this.spinSpeed !== 0) {
@@ -689,9 +693,9 @@ void main() {
       this.uniform['u_time'].value = this.motionTime;
 
       if (this.mesh != null) {
-        this.mesh.rotation.x = this.motionTime * 0.1 + this.tilt;
+        this.mesh.rotation.x = this.driftTime * 0.1 + this.tilt;
         this.mesh.rotation.y = this.spin;
-        this.mesh.rotation.z = this.motionTime * 0.1;
+        this.mesh.rotation.z = this.driftTime * 0.1;
         this.mesh.visible = true;
       }
     } else {
@@ -705,7 +709,7 @@ void main() {
 
     // Slowly rotate
     if (this.item().shouldRotate) {
-      this.itemRot = new Euler(this.itemRot.x, this.itemRot.y + this.rotateAmt * dt, this.itemRot.z);
+      this.itemRot = new Euler(this.itemRot.x, this.itemRot.y + this.rotateAmt * drift, this.itemRot.z);
     }
 
     if (this.moving && this.TargetPos !== undefined && this.OriginalPos !== undefined) {
@@ -715,8 +719,8 @@ void main() {
       const direction = targetPos.clone().sub(currentPos).normalize();
 
       // Never step past the target, a long frame would otherwise overshoot it.
-      // With reduced motion, skip the glide and appear at the target straight away.
-      const maxStep = reduceMotion ? Infinity : this.moveAmt * dt;
+      // With reduced motion, skip the glide and appear at the target straight away. Held, it waits.
+      const maxStep = this.dragging ? 0 : reduceMotion ? Infinity : this.moveAmt * dt;
       const step = Math.min(maxStep, currentPos.distanceTo(targetPos));
       currentPos.addScaledVector(direction, step);
 

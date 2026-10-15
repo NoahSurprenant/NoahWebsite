@@ -511,6 +511,34 @@ describe('SkyrimLoadingComponent', () => {
       expect(scene['spinSpeed']).toBe(0);
     });
 
+    it('stops drifting and turning by itself while held, and carries on when let go', async () => {
+      const { scene, send, at, now } = await playWith();
+      at(1000);
+      const position = scene.itemPos.clone();
+      const rotation = scene.itemRot.y;
+      send('pointerdown', { x: 0 });
+      at(2000);
+      at(3000);
+      expect(scene.itemPos).toEqual(position);
+      expect(scene.itemRot.y).toBe(rotation);
+      now.mockReturnValue(3000);
+      send('pointerup', { x: 0, time: 3000 });
+      at(4000);
+      expect(scene.itemPos.distanceTo(position)).toBeCloseTo(0.66, 1);
+      expect(scene.itemRot.y).toBeGreaterThan(rotation);
+    });
+
+    it('holds the Perlin sphere still while held, though it keeps rippling', async () => {
+      const { scene, send, at } = await playWith(PERLIN);
+      at(1000);
+      const sphere = scene['mesh']!;
+      const tumble = sphere.rotation.z;
+      send('pointerdown', { x: 0 });
+      at(2000);
+      expect(sphere.rotation.z).toBe(tumble);
+      expect(scene['uniform']['u_time'].value).toBeCloseTo(2);
+    });
+
     it("doesn't flick when the pointer was held still before letting go", async () => {
       const { scene, send, now } = await playWith();
       send('pointerdown', { x: 0 });
