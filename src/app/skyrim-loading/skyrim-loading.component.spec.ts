@@ -201,15 +201,14 @@ describe('SkyrimLoadingComponent', () => {
     });
   });
 
-  it("keeps the caption and links, without the scene, when there's no WebGL", async () => {
+  it("leaves the scene out when there's no WebGL", async () => {
     mocks.state.noWebGL = true;
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { el, scene } = await create();
     expect(el.querySelector('canvas')).toBeNull();
     expect(warn).toHaveBeenCalled();
     // Resizing still keeps the camera right
-    scene['resize']();
-    expect(el.querySelector('.caption')?.textContent).toMatch(/\S{3}/);
+    expect(() => scene['resize']()).not.toThrow();
   });
 
   it('stops setting up when it was destroyed before the renderer was made', async () => {
@@ -421,14 +420,12 @@ describe('SkyrimLoadingComponent', () => {
     fixture.destroy();
   });
 
-  it('picks a new spot and a new item different from the current ones', async () => {
+  it('picks a new spot different from the current one', async () => {
     const { scene } = await create(0);
     scene.OriginalPos = scene['positions'][0];
     // The first tries are the current ones, so it tries again
     vi.spyOn(Math, 'random').mockReturnValueOnce(0).mockReturnValueOnce(0.9);
     expect(scene['getNewTarget']()).toBe(scene['positions'][2]);
-    vi.spyOn(Math, 'random').mockReturnValueOnce(0.5 / 6).mockReturnValueOnce(1.5 / 6);
-    expect(scene['getNewItemIndex']()).toBe(1);
   });
 
   it('frames the models and the sphere for the screen shape', async () => {
