@@ -74,9 +74,9 @@ canvas {
     .sync, .vote { display: none; }
 }
 
-/* Taller ones (most phones upright) have room for the waveforms under the battery, even with
-   the longest title */
-@media (max-width: 1100px) and (min-height: 760px) {
+/* Tall upright ones (most phones and tablets) have room for the waveforms under the battery,
+   even with the longest title; a tablet on its side, with its bigger title, doesn't */
+@media (max-width: 1100px) and (min-height: 760px) and (orientation: portrait) {
     .sync { display: block; }
 }
 
