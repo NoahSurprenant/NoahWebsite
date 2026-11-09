@@ -40,7 +40,7 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     .caption { grid-area: caption; margin: 0.25em 0 0; color: var(--dim, #1f9c43); min-height: 1.45em; }
     .details { display: none; margin: 0; font: inherit; color: var(--dim, #1f9c43); }
     /* Beside the landscape where there's room, level with its front ridges */
-    @container (min-width: 960px) {
+    @container (min-width: 1100px) {
       .ridge { grid-template: ". ." 1fr "canvas caption" auto "canvas details" auto / minmax(0, 720px) auto; column-gap: 4ch; }
       canvas { grid-row: 1 / -1; }
       .caption { margin: 0; color: var(--fg, #3dff6e); }
