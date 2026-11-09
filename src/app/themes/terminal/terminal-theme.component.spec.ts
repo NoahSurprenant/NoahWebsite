@@ -325,6 +325,21 @@ describe('TerminalThemeComponent extras', () => {
 
     el.querySelector<HTMLButtonElement>('.repos button')!.click();
     expect(terminal.lines().at(-3)).toEqual({ kind: 'command', text: 'fetch Headhunter' });
+    // With a mouse, nothing to tap and the words say hover
+    expect(el.querySelector('.tap')).toBeNull();
+    expect(printed()).toContain('hover for a week');
+  });
+
+  it('gives a touch screen commands to tap, and says tap', async () => {
+    stubMatchMedia(REDUCED_MOTION, '(pointer: coarse)');
+    const { el, terminal, printed, fixture } = await create();
+    expect(el.querySelector('.hint')!.textContent).not.toContain('Tab');
+    const buttons = Array.from(el.querySelectorAll<HTMLButtonElement>('.tap button'));
+    expect(buttons.map(b => b.textContent)).toEqual(['help', 'neofetch', 'contrib', 'ls repos/', 'clear']);
+    buttons[2].click();
+    fixture.detectChanges();
+    expect(terminal.lines().at(-3)).toEqual({ kind: 'command', text: 'contrib' });
+    expect(printed()).toContain('tap for a week');
   });
 
   it('keeps a slow answer under its command, and drops it once the screen is cleared', async () => {

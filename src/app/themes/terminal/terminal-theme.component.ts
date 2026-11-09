@@ -25,6 +25,8 @@ export const PROMPT = 'guest@noahsurprenant.com:~$';
 
 // Typed out when the page opens, so the links are there without typing anything
 const BOOT_COMMANDS = ['whoami', 'ls links/'];
+/** Buttons for these on a touch screen, where typing is a chore and there's no Tab */
+const TAP_COMMANDS = ['help', 'neofetch', 'contrib', 'ls repos/', 'clear'];
 /** Milliseconds per typed character, at random between these */
 const TYPING = [45, 110];
 /** The pause after a typed command, before Enter */
@@ -52,6 +54,9 @@ export class TerminalThemeComponent {
   protected readonly links = LINKS;
   protected readonly logo = LOGO;
   protected readonly cat = inject(Cat);
+  /** A finger rather than a mouse: commands to tap, and the words say tap */
+  protected readonly touch = window.matchMedia('(pointer: coarse)').matches;
+  protected readonly tapCommands = TAP_COMMANDS;
   private readonly themes = inject(ThemeService);
   private readonly github = new GithubLoader();
   private readonly data = signal<GithubData | null>(null);
@@ -236,7 +241,7 @@ export class TerminalThemeComponent {
 
   private githubCommand(command: string, arg: string | undefined, data: GithubData): Line[] {
     if (command === 'neofetch') return [{ kind: 'neofetch', info: neofetch(data, PROMPT.slice(0, -3)) }];
-    if (command === 'contrib') return [{ kind: 'ridge', days: data.days }, { kind: 'output', text: contribSummary(data.days) }];
+    if (command === 'contrib') return [{ kind: 'ridge', days: data.days }, { kind: 'output', text: contribSummary(data.days, this.touch) }];
     if (!arg) return [{ kind: 'output', text: 'usage: fetch <repo>' }, { kind: 'repos', names: data.repos.map(r => r.name) }];
     const repo = findRepo(data, arg);
     if (!repo) return [{ kind: 'output', text: `fetch: ${arg}: no such repo. Try: ls repos/` }];

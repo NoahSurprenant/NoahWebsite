@@ -179,6 +179,37 @@ input.hidden {
     color: #5cc8ff;
 }
 
+/* On a touch screen: a row of commands to tap, above the status line, scrolling sideways if it must */
+.tap {
+    flex: none;
+    display: flex;
+    gap: 1ch;
+    padding: 8px 12px;
+    border-top: 1px solid var(--dim);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.tap button {
+    flex: none;
+    min-height: 40px;
+    padding: 0 1.5ch;
+    border: 1px solid var(--dim);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-shadow: inherit;
+    cursor: pointer;
+}
+
+.tap button:active,
+.tap button:focus-visible {
+    outline: none;
+    background: var(--fg);
+    color: #0a0f0a;
+    text-shadow: none;
+}
+
 /* Vim's status line: the mode, then the cat and the visitors on the right */
 .status {
     flex: none;
