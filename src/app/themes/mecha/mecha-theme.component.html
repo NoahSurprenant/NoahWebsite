@@ -1,7 +1,9 @@
 <div class="screen">
     <div class="grid" aria-hidden="true">
         @for (flash of flashes; track $index) {
-        <i [style.left]="flash.left" [style.top]="flash.top" [style.animation-delay]="flash.delay" [style.animation-duration]="flash.duration"></i>
+        <i [style.left]="flash.left" [style.top]="flash.top" [style.animation-delay]="flash.delay" [style.animation-duration]="flash.duration">
+            <svg viewBox="0 0 52 90"><path d="M26 0 52 45 26 90 0 45Z" /></svg>
+        </i>
         }
     </div>
 

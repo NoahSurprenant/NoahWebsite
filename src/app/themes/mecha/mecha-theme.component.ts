@@ -20,11 +20,16 @@ import { TitleCardComponent } from './title-card.component';
 })
 export class MechaThemeComponent {
   protected readonly links = LINKS;
-  // Hexes on the background grid that flash, each at its own place and pace
-  protected readonly flashes = Array.from({ length: 12 }, () => ({
-    left: `${Math.random() * 100}%`,
-    top: `${Math.random() * 100}%`,
-    delay: `${-Math.random() * 6}s`,
-    duration: `${2 + Math.random() * 4}s`,
-  }));
+  // Cells of the background grid that light up, each at its own place and pace. The grid's lines
+  // cross every 26px across and 45px down, and a cell is centred halfway between two crossings.
+  protected readonly flashes = Array.from({ length: 12 }, () => {
+    const col = Math.floor(Math.random() * (window.innerWidth / 26 + 1));
+    const row = Math.floor(Math.random() * (window.innerHeight / 90 + 1)) * 2 + ((col + 1) % 2);
+    return {
+      left: `${col * 26 - 26}px`,
+      top: `${row * 45 - 45}px`,
+      delay: `${-Math.random() * 6}s`,
+      duration: `${3 + Math.random() * 4}s`,
+    };
+  });
 }

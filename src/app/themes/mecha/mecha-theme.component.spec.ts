@@ -25,6 +25,21 @@ describe('MechaThemeComponent', () => {
     expect(el.querySelectorAll('.grid i').length).toBe(12);
   });
 
+  it('lights up whole cells of the background grid, never between its lines', async () => {
+    stubMatchMedia();
+    fakeCanvas();
+    manualFrames();
+    const fixture = TestBed.createComponent(MechaThemeComponent);
+    await fixture.whenStable();
+    for (const cell of (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.grid i')) {
+      // Each cell's centre is 26px across and 45px down from its corner, on the lines' half-steps
+      const across = (parseFloat(cell.style.left) + 26) / 26;
+      const down = (parseFloat(cell.style.top) + 45) / 45;
+      expect(Number.isInteger(across) && Number.isInteger(down)).toBe(true);
+      expect((across + down) % 2).toBe(1);
+    }
+  });
+
   it('blacks out the whole theme when the HUD runs out of power', async () => {
     stubMatchMedia();
     fakeCanvas();
