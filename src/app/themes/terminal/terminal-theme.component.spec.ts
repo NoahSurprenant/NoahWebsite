@@ -386,10 +386,12 @@ describe('TerminalThemeComponent extras', () => {
     expect(key(document.body, 'j')).toBe(false);
 
     input.blur();
+    // The command line has the keyboard as soon as : is down, so a fast :q loses nothing
     key(document.body, ':');
-    await fixture.whenStable();
     const ex = el.querySelector<HTMLInputElement>('.ex input')!;
     expect(document.activeElement).toBe(ex);
+    await fixture.whenStable();
+    expect(el.querySelector('.ex')!.classList).not.toContain('off');
     ex.value = 'w';
     key(ex, 'Enter');
     expect(printed()).toContain(":w\nE45: 'readonly' option is set");

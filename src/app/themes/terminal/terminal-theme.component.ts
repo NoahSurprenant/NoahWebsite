@@ -66,7 +66,7 @@ export class TerminalThemeComponent {
 
   private readonly screen = viewChild.required<ElementRef<HTMLElement>>('screen');
   private readonly input = viewChild.required<ElementRef<HTMLInputElement>>('input');
-  private readonly exInput = viewChild<ElementRef<HTMLInputElement>>('ex');
+  private readonly exInput = viewChild.required<ElementRef<HTMLInputElement>>('ex');
   private readonly history: string[] = [];
   private historyIndex = 0;
   /** The line a Tab left ambiguous; a second Tab on it lists the choices */
@@ -79,9 +79,6 @@ export class TerminalThemeComponent {
       this.lines();
       const screen = this.screen().nativeElement;
       screen.scrollTop = screen.scrollHeight;
-    });
-    afterRenderEffect(() => {
-      if (this.mode() === 'command') this.exInput()?.nativeElement.focus({ preventScroll: true });
     });
     // Put the cursor in the prompt. Only where there's a real keyboard: on a phone focusing would
     // pop up the on-screen one.
@@ -298,6 +295,9 @@ export class TerminalThemeComponent {
       this.input().nativeElement.focus({ preventScroll: true });
     } else if (event.key === ':') {
       this.mode.set('command');
+      const ex = this.exInput().nativeElement;
+      ex.value = '';
+      ex.focus({ preventScroll: true });
     } else {
       return;
     }
@@ -308,9 +308,9 @@ export class TerminalThemeComponent {
     const input = event.target as HTMLInputElement;
     if (event.key === 'Enter') {
       this.ex(input.value);
-      this.mode.set('normal');
+      input.blur();
     } else if (event.key === 'Escape' || (event.key === 'Backspace' && !input.value)) {
-      this.mode.set('normal');
+      input.blur();
     }
   }
 

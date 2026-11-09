@@ -51,10 +51,11 @@
     </div>
 
     <div class="status" [class]="mode()">
-        @if (mode() === 'command') {
-        <label class="ex">:<input #ex type="text" aria-label="Editor command" autocomplete="off" autocapitalize="off"
-            spellcheck="false" (keydown)="exKey($event)" (blur)="mode.set('normal')"></label>
-        } @else {
+        <!-- Always there (out of sight until :), so it can take the focus in the same keypress and
+             nothing typed straight after the : is lost -->
+        <label class="ex" [class.off]="mode() !== 'command'">:<input #ex type="text" aria-label="Editor command" tabindex="-1"
+            autocomplete="off" autocapitalize="off" spellcheck="false" (keydown)="exKey($event)" (blur)="mode.set('normal')"></label>
+        @if (mode() !== 'command') {
         <span class="mode" aria-hidden="true">{{ mode() === 'insert' ? 'INSERT' : 'NORMAL' }}</span>
         <span class="where" aria-hidden="true">~ <span class="dim">{{ mode() === 'insert' ? 'esc: normal mode' : 'i: type · j/k: scroll · :help' }}</span></span>
         }

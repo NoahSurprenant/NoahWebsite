@@ -220,6 +220,14 @@ input.hidden {
     flex: auto;
 }
 
+/* Out of sight but focusable, ready for the next : */
+.ex.off {
+    position: absolute;
+    width: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
 /* Only where there's a keyboard to mirror, and room for it */
 @media (max-width: 900px), (max-height: 700px), (pointer: coarse) {
     app-keyboard,
