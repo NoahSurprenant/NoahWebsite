@@ -5,17 +5,24 @@
 // work day by day just like the profile does.
 
 export const USER = 'NoahSurprenant';
+/** Organizations whose public repos are listed too, as ORG/name */
+const ORGS = ['PlayGrifball'];
+
+const REPO_FIELDS = `nodes {
+  name description url stargazerCount createdAt pushedAt isArchived
+  languages(first: 20, orderBy: { field: SIZE, direction: DESC }) { edges { size node { name } } }
+}`;
 
 const QUERY = `query ($login: String!) {
   user(login: $login) {
     createdAt
     repositories(first: 100, ownerAffiliations: OWNER, isFork: false, privacy: PUBLIC, orderBy: { field: PUSHED_AT, direction: DESC }) {
-      nodes {
-        name description url stargazerCount createdAt pushedAt isArchived
-        languages(first: 20, orderBy: { field: SIZE, direction: DESC }) { edges { size node { name } } }
-      }
+      ${REPO_FIELDS}
     }
   }
+  ${ORGS.map((org, i) => `org${i}: organization(login: "${org}") {
+    repositories(first: 100, isFork: false, privacy: PUBLIC, orderBy: { field: PUSHED_AT, direction: DESC }) { ${REPO_FIELDS} }
+  }`).join('\n')}
 }`;
 
 export async function snapshot(token = process.env.GITHUB_TOKEN) {
@@ -29,10 +36,18 @@ export async function snapshot(token = process.env.GITHUB_TOKEN) {
   const user = body?.data?.user;
   if (!response.ok || !user) throw new Error(`GitHub GraphQL: ${response.status} ${JSON.stringify(body?.errors ?? '')}`);
 
-  const repos = user.repositories.nodes
+  // An org can refuse a token (PlayGrifball refuses ones that live longer than a year); the
+  // rest still comes through, and the reason is logged
+  if (body.errors) console.warn(`GitHub GraphQL: ${body.errors.map(e => e.message).join('; ')}`);
+  const lists = [
+    ...user.repositories.nodes.map(r => ({ ...r, prefix: '' })),
+    ...ORGS.flatMap((org, i) => (body.data[`org${i}`]?.repositories.nodes ?? []).map(r => ({ ...r, prefix: `${org}/` }))),
+  ];
+  const repos = lists
     .filter(r => !r.isArchived && r.name !== USER)
+    .sort((a, b) => b.pushedAt.localeCompare(a.pushedAt))
     .map(r => ({
-      name: r.name,
+      name: r.prefix + r.name,
       description: r.description ?? '',
       url: r.url,
       languages: Object.fromEntries(r.languages.edges.map(e => [e.node.name, e.size])),
