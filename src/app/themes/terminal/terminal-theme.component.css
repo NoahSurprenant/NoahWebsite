@@ -129,3 +129,117 @@ kbd {
         padding-block: 8px;
     }
 }
+
+.typing {
+    white-space: pre;
+}
+
+/* The caret after the typed text, while the boot is typing */
+.typing::after {
+    content: "█";
+    animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+input.hidden {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* A repo name runs `fetch` on it */
+.repos button {
+    padding: 0;
+    border: none;
+    background: none;
+    color: #5cc8ff;
+    font: inherit;
+    text-shadow: 0 0 6px rgb(92 200 255 / 45%);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.repos button:hover,
+.repos button:focus-visible {
+    background: #5cc8ff;
+    color: #0a0f0a;
+}
+
+.url {
+    color: #5cc8ff;
+}
+
+/* Vim's status line: the mode, then the cat and the visitors on the right */
+.status {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 2ch;
+    padding: 0 24px;
+    border-top: 1px solid var(--dim);
+    font-size: 0.8em;
+    line-height: 2;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.status .mode {
+    margin-left: -24px;
+    padding: 0 1.5ch;
+    background: var(--dim);
+    color: #0a0f0a;
+    font-weight: bold;
+    text-shadow: none;
+}
+
+.status.insert .mode {
+    background: var(--fg);
+}
+
+.status .fill {
+    flex: auto;
+}
+
+.dim {
+    color: var(--dim);
+}
+
+.spark {
+    font-size: 0.75em;
+}
+
+.ex {
+    display: flex;
+    flex: auto;
+}
+
+.ex input {
+    flex: auto;
+}
+
+/* Only where there's a keyboard to mirror, and room for it */
+@media (max-width: 900px), (max-height: 700px), (pointer: coarse) {
+    app-keyboard,
+    .cat-state {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .status {
+        padding-inline: 12px;
+    }
+    .status .mode {
+        margin-left: -12px;
+    }
+    .status .where,
+    .visitors .dim {
+        display: none;
+    }
+    .spark {
+        font-size: 0.6em;
+    }
+}

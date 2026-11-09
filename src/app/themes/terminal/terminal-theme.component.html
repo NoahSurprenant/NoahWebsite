@@ -17,6 +17,19 @@
                     }
                 </ul>
                 }
+                @case ('repos') {
+                <ul class="links repos">
+                    @for (repo of line.names; track repo) {
+                    <li><button type="button" (click)="fetchRepo(repo)">{{ repo }}/</button></li>
+                    }
+                </ul>
+                }
+                @case ('link') {
+                <a class="url" [href]="line.href" target="_blank" rel="noopener noreferrer">{{ line.text }}</a>
+                }
+                @case ('ridge') {
+                <app-ridge [days]="line.days" />
+                }
                 @default {
                 <pre>{{ line.text }}</pre>
                 }
@@ -25,11 +38,36 @@
 
         <label class="input-line">
             <span class="prompt">{{ prompt }}</span>
+            @if (typing() !== null) {
+            <span class="typing" aria-hidden="true">{{ typing() }}</span>
+            }
             <input #input type="text" aria-label="Command (type help)" autocomplete="off" autocapitalize="off"
-                spellcheck="false" enterkeyhint="go" (keydown)="onKeydown($event)">
+                spellcheck="false" enterkeyhint="go" [class.hidden]="typing() !== null"
+                (keydown)="onKeydown($event)" (focus)="focused()" (blur)="blurred()">
         </label>
         @if (lines().length <= 4) {
-        <p class="hint">Type <kbd>help</kbd> for commands.</p>
+        <p class="hint">Type <kbd>help</kbd> for commands, or try <kbd>neofetch</kbd>. <kbd>Tab</kbd> completes.</p>
         }
     </div>
+
+    <div class="status" [class]="mode()">
+        @if (mode() === 'command') {
+        <label class="ex">:<input #ex type="text" aria-label="Editor command" autocomplete="off" autocapitalize="off"
+            spellcheck="false" (keydown)="exKey($event)" (blur)="mode.set('normal')"></label>
+        } @else {
+        <span class="mode" aria-hidden="true">{{ mode() === 'insert' ? 'INSERT' : 'NORMAL' }}</span>
+        <span class="where" aria-hidden="true">~ <span class="dim">{{ mode() === 'insert' ? 'esc: normal mode' : 'i: type · j/k: scroll · :help' }}</span></span>
+        }
+        <span class="fill"></span>
+        @if (cat.mood() !== 'away') {
+        <span class="cat-state" aria-hidden="true"><span class="dim">cat</span> {{ cat.mood() }}</span>
+        }
+        @if (visitorGraph(); as graph) {
+        <span class="visitors" [attr.aria-label]="graph.total + ' visitors in the last 48 hours'">
+            <span class="dim" aria-hidden="true">48h</span> <span class="spark" aria-hidden="true">{{ graph.line }}</span> <span aria-hidden="true">{{ graph.total }}</span>
+        </span>
+        }
+    </div>
+
+    <app-keyboard />
 </div>
