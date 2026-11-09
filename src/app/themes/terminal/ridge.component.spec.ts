@@ -66,6 +66,24 @@ describe('RidgeComponent', () => {
     expect(caption()).toBe('');
   });
 
+  it('breaks the week down by day, this week until one is picked, over the busiest week and the average', async () => {
+    stubMatchMedia(REDUCED_MOTION);
+    fakeCanvas();
+    const { fixture, el, canvas } = await create();
+    const details = () => el.querySelector('.details')!.textContent;
+    expect(details()).toBe([
+      'Sun  ████████████ 12',
+      'Mon  ░░░░░░░░░░░░  0',
+      'Tue', 'Wed', 'Thu', 'Fri', 'Sat',
+      '',
+      'Busiest week  2026-11-01, 14',
+      'Average       9 a week',
+    ].join('\n'));
+    canvas.dispatchEvent(new MouseEvent('pointermove', { clientY: -100 }));
+    fixture.detectChanges();
+    expect(details()).toContain('Fri\nSat  ████████████ 2\n');
+  });
+
   it('steps through the weeks with the arrow keys', async () => {
     stubMatchMedia(REDUCED_MOTION);
     fakeCanvas();
