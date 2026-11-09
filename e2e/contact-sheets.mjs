@@ -20,10 +20,11 @@ for (const theme of themes) {
   files.sort((a, b) => parseInt(a) - parseInt(b));
   const rows = new Map();
   for (const file of files) {
-    // "5-phone-landscape-820x300.png" -> "Phone, landscape · 820×300", on the phones' row
-    const [, kind, orientation, size] = file.match(/^\d+-([a-z]+)(?:-([a-z]+))?-(\d+x\d+)\.png$/);
-    const caption = `${kind[0].toUpperCase()}${kind.slice(1)}${orientation ? `, ${orientation}` : ''} · ${size.replace('x', '×')}`;
-    const row = kind === 'desktop' || kind === 'laptop' ? 'computer' : kind;
+    // "5-phone-landscape-820x300.png" -> "Phone, landscape · 820×300", on the phones' row.
+    // "2-desktop-1920x1080--neofetch.png" (e2e/terminal.spec.ts) goes on a row for neofetch.
+    const [, kind, orientation, size, step] = file.match(/^\d+-([a-z]+)(?:-([a-z]+))?-(\d+x\d+)(?:--([a-z-]+))?\.png$/);
+    const caption = `${step ? `${step} · ` : ''}${kind[0].toUpperCase()}${kind.slice(1)}${orientation ? `, ${orientation}` : ''} · ${size.replace('x', '×')}`;
+    const row = step ?? (kind === 'desktop' || kind === 'laptop' ? 'computer' : kind);
     const data = (await readFile(join(dir, theme, file))).toString('base64');
     rows.set(row, [...(rows.get(row) ?? []), `<figure><img src="data:image/png;base64,${data}"><figcaption>${caption}</figcaption></figure>`]);
   }

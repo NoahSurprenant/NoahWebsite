@@ -3,6 +3,40 @@
  "since": "2018-04-24",
  "repos": [
   {
+   "name": "PlayGrifball/GrifballWebApp",
+   "description": "Full stack web application for tracking Grifball stats",
+   "url": "https://github.com/PlayGrifball/GrifballWebApp",
+   "languages": {
+    "C#": 9415377,
+    "TypeScript": 1896744,
+    "HTML": 272614,
+    "SCSS": 123503,
+    "Go Template": 75429,
+    "Shell": 69005,
+    "JavaScript": 40972,
+    "PowerShell": 19402,
+    "Dockerfile": 15312,
+    "CSS": 7998
+   },
+   "stars": 1,
+   "created": "2024-02-11",
+   "pushed": "2026-11-09"
+  },
+  {
+   "name": "NoahWebsite",
+   "description": "",
+   "url": "https://github.com/NoahSurprenant/NoahWebsite",
+   "languages": {
+    "TypeScript": 188444,
+    "CSS": 28288,
+    "HTML": 9738,
+    "JavaScript": 5387
+   },
+   "stars": 0,
+   "created": "2023-01-29",
+   "pushed": "2026-11-09"
+  },
+  {
    "name": "ef-temporal-notracking-cache-repro",
    "description": "EF Core: a temporal query (TemporalAll/AsOf) runs as a cached plain AsNoTracking query of the same shape",
    "url": "https://github.com/NoahSurprenant/ef-temporal-notracking-cache-repro",
@@ -12,6 +46,21 @@
    "stars": 0,
    "created": "2026-11-07",
    "pushed": "2026-11-07"
+  },
+  {
+   "name": "PlayGrifball/grunt",
+   "description": "🪐 An unofficial Halo Infinite API wrapper.",
+   "url": "https://github.com/PlayGrifball/grunt",
+   "languages": {
+    "C#": 816066,
+    "Shell": 7493,
+    "Go Template": 1885,
+    "Dockerfile": 1349,
+    "Batchfile": 221
+   },
+   "stars": 0,
+   "created": "2023-07-10",
+   "pushed": "2026-11-03"
   },
   {
    "name": "telemetry-gate",
@@ -56,20 +105,6 @@
    "stars": 0,
    "created": "2026-09-13",
    "pushed": "2026-10-23"
-  },
-  {
-   "name": "NoahWebsite",
-   "description": "",
-   "url": "https://github.com/NoahSurprenant/NoahWebsite",
-   "languages": {
-    "TypeScript": 188444,
-    "CSS": 28288,
-    "HTML": 9738,
-    "JavaScript": 5387
-   },
-   "stars": 0,
-   "created": "2023-01-29",
-   "pushed": "2026-10-15"
   },
   {
    "name": "netflow-enricher",
@@ -280,18 +315,19 @@
   }
  ],
  "languages": {
-  "C#": 2913647,
+  "C#": 13145090,
+  "TypeScript": 2790073,
+  "HTML": 361086,
+  "SCSS": 124482,
+  "Go Template": 85871,
+  "Shell": 90278,
+  "JavaScript": 61016,
+  "PowerShell": 19402,
+  "Dockerfile": 29481,
+  "CSS": 237065,
+  "Batchfile": 1388,
   "Go": 63898,
-  "Dockerfile": 12820,
-  "TypeScript": 893329,
-  "HTML": 88472,
-  "JavaScript": 20044,
-  "Shell": 13780,
-  "Go Template": 8557,
-  "CSS": 229067,
-  "SCSS": 979,
   "Java": 2590,
-  "Batchfile": 1167,
   "C++": 136092,
   "C": 422
  },
@@ -1758,7 +1794,7 @@
   },
   {
    "date": "2026-11-09",
-   "count": 58
+   "count": 78
   }
  ]
 }
