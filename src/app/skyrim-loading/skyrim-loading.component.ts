@@ -266,17 +266,14 @@ void main() {
     // Pause the timer while the tab is hidden so the model doesn't jump when we come back
     this.timer.connect(document);
     this.requestFrame();
-    this.addReflections(this.renderer);
-    this.addFogIfFastGpu();
+    this.addGpuExtras(this.renderer);
   }
 
   /**
    * Metal (the cart, the hammer) shows only what it reflects, and lights alone leave it black. It
    * reflects a small dark room with a few warm glowing panels, drawn once here: nothing to download.
    */
-  private async addReflections(renderer: WebGLRenderer) {
-    await yieldToMain();
-    if (this.destroyed) return;
+  private addReflections(renderer: WebGLRenderer) {
     const room = new Scene();
     room.add(new Mesh(new BoxGeometry(10, 10, 10), new MeshBasicMaterial({ color: 0x050403, side: BackSide })));
     // Brighter than white, as lamps are
@@ -296,16 +293,20 @@ void main() {
     disposeObject(room);
   }
 
-  private async addFogIfFastGpu() {
+  /** Reflections for metal, wherever there's a GPU to draw them, and the fog where it's fast. */
+  private async addGpuExtras(renderer: WebGLRenderer) {
     // detect-gpu makes a WebGL context of its own to read the GPU name, which is slow too
     await yieldToMain();
     if (this.destroyed) return;
     const gpuTier = await getGPUTier({ benchmarksURL: `${ASSET_PATH}detect-gpu` });
     if (this.destroyed) return;
+    // Drawn on the CPU, the reflections' room is a long stall, for a few highlights
+    const software = gpuTier.tier === 0 || SOFTWARE_RENDERER.test(gpuTier.gpu ?? '');
+    if (!software) this.addReflections(renderer);
     // detect-gpu looks the GPU's name up in its benchmarks. When the name is hidden or unknown it
     // says FALLBACK (tier 1): Brave, for one, gives every user the same generic name to stop
     // fingerprinting. Rather than never showing those the fog, it goes on trial.
-    const unknown = gpuTier.type === 'FALLBACK' && !SOFTWARE_RENDERER.test(gpuTier.gpu ?? '');
+    const unknown = gpuTier.type === 'FALLBACK' && !software;
     if (gpuTier.tier <= 1 && !unknown) return;
     this.fog = new Fog(this.reducedMotion.matches);
     this.scene.add(this.fog.object);

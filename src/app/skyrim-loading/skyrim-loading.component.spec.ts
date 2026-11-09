@@ -147,6 +147,13 @@ describe('SkyrimLoadingComponent', () => {
     expect(scene['fog']!.smokeData.length).toBeGreaterThan(0);
   });
 
+  it('leaves out the reflections where detect-gpu blocklists the GPU', async () => {
+    const { scene } = await create();
+    mocks.state.gpu.resolve({ tier: 0 });
+    await flush();
+    expect(scene['scene'].environment).toBeNull();
+  });
+
   it('leaves the fog out on a slow GPU', async () => {
     const { scene } = await create();
     mocks.state.gpu.resolve({ tier: 1 });
@@ -193,6 +200,8 @@ describe('SkyrimLoadingComponent', () => {
       mocks.state.gpu.resolve({ tier: 1, type: 'FALLBACK', gpu: 'google, swiftshader device (subzero) (0x0000c0de), swiftshader driver' } as never);
       await flush();
       expect(scene['fog']).toBeUndefined();
+      // Nor the reflections, which would stall drawing them on the CPU
+      expect(scene['scene'].environment).toBeNull();
     });
 
     it('takes the fog out again when it slows the frames down', async () => {
@@ -221,6 +230,8 @@ describe('SkyrimLoadingComponent', () => {
 
   it('gives metal a warm room to reflect, and lets it go when destroyed', async () => {
     const { fixture, scene } = await create();
+    mocks.state.gpu.resolve({ tier: 1 });
+    await flush();
     const reflections = scene['scene'].environment!;
     expect(reflections).toBeInstanceOf(Texture);
     const dispose = vi.spyOn(reflections, 'dispose');
