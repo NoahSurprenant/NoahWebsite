@@ -213,4 +213,6 @@ jobs:
         with:
           name: lighthouse-${{ matrix.preset }}
           path: .lighthouseci/
+          # Its name starts with a dot, which upload-artifact leaves out unless told
+          include-hidden-files: true
           retention-days: 30
