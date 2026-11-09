@@ -122,7 +122,8 @@
     50% { background: var(--orange); color: #000; }
 }
 
-/* Narrower screens: everything stacks, and only the battery readout stays */
+/* Narrower screens: everything stacks, and only the battery readout stays (and the waveforms,
+   when there's height) */
 @media (max-width: 1100px) {
     .screen { grid-template: "card" auto "hud" 1fr "console" auto / minmax(0, 1fr); }
     /* By height too, so a two-line title still leaves room for the readout and links */

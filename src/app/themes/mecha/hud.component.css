@@ -74,6 +74,12 @@ canvas {
     .sync, .vote { display: none; }
 }
 
+/* Taller ones (most phones upright) have room for the waveforms under the battery, even with
+   the longest title */
+@media (max-width: 1100px) and (min-height: 760px) {
+    .sync { display: block; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
     .timer.low {
         animation: blink 0.8s steps(1) infinite;
