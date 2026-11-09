@@ -68,6 +68,21 @@ jobs:
       - name: Build and run the browser smoke test
         run: npm run e2e
 
+      # The axe scans as a table, for the run's summary and the PR comment (the report job)
+      - name: Summarise the axe scans
+        if: ${{ !cancelled() }}
+        run: |
+          node e2e/axe-summary.mjs > axe.md
+          cat axe.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the axe summary for the PR comment
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: summary-axe
+          path: axe.md
+          retention-days: 7
+
       # One picture per theme with all its screen sizes, from the layout test's screenshots. Even
       # when a test failed, since the pictures may show why.
       - name: Make the screenshot contact sheets
@@ -207,6 +222,24 @@ jobs:
           LIGHTHOUSE_PRESET: ${{ matrix.preset }}
         run: npx lhci autorun
 
+      # The scores as a table, for the run's summary and the PR comment (the report job), with a
+      # warning for each theme under the performance target
+      - name: Summarise the scores
+        if: ${{ !cancelled() }}
+        env:
+          LIGHTHOUSE_PRESET: ${{ matrix.preset }}
+        run: |
+          node e2e/lighthouse-summary.mjs > lighthouse-${{ matrix.preset }}.md
+          cat lighthouse-${{ matrix.preset }}.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the scores for the PR comment
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: summary-lighthouse-${{ matrix.preset }}
+          path: lighthouse-${{ matrix.preset }}.md
+          retention-days: 7
+
       - name: Upload the Lighthouse reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -216,3 +249,50 @@ jobs:
           # Its name starts with a dot, which upload-artifact leaves out unless told
           include-hidden-files: true
           retention-days: 30
+
+  # On a PR, one comment with the axe and Lighthouse results, which each run updates in place
+  report:
+    needs: [e2e, lighthouse]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Fetch the summaries
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: summary-*
+          merge-multiple: true
+
+      - name: Post or update the comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          RUN: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          marker='<!-- test-results -->'
+          missing() { echo "### $1"; echo; echo "No results: the job didn't get that far."; }
+          reports=$(gh api "repos/$REPO/actions/runs/$RUN/artifacts" --jq \
+            '[.artifacts[] | select(.name | startswith("lighthouse-")) | "[\(.name | sub("lighthouse-"; ""))](https://github.com/'"$REPO"'/actions/runs/'"$RUN"'/artifacts/\(.id))"] | join(" · ")')
+          body="$marker
+          ## Accessibility and Lighthouse
+          As of $SHA ([run](https://github.com/$REPO/actions/runs/$RUN)).
+
+          $(cat axe.md 2>/dev/null || missing 'Accessibility (axe)')
+
+          $(cat lighthouse-desktop.md 2>/dev/null || missing 'Lighthouse, desktop')
+
+          $(cat lighthouse-mobile.md 2>/dev/null || missing 'Lighthouse, mobile')
+
+          Full Lighthouse reports (zip): ${reports:-none}"
+          existing=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq "[.[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\")))][0].id // empty" | head -n1)
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$existing" -f body="$body" > /dev/null
+          else
+            gh pr comment "$PR" -R "$REPO" --body "$body"
+          fi

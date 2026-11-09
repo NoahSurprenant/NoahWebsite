@@ -57,7 +57,7 @@ for (const [device, width, height] of SIZES) {
       await step(page);
       await page.waitForTimeout(400);
       await page.screenshot({ path: `screenshots/terminal-commands/${index + 1}-${device}-${width}x${height}--${label}.png` });
-      for (const violation of await axeViolations(page)) problems.push(`${label}: ${violation}`);
+      for (const violation of await axeViolations(page, `terminal ${label}, ${device}`)) problems.push(`${label}: ${violation}`);
     }
     expect(problems).toEqual([]);
   });

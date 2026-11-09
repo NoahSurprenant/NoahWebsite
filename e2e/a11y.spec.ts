@@ -18,7 +18,7 @@ for (const theme of ['skyrim', 'terminal', 'xbox', 'mecha']) {
       await page.goto(`/?theme=${theme}`);
       await expect(page.locator(`app-${theme}-theme`)).toBeVisible();
       await page.waitForTimeout(1500);
-      expect(await axeViolations(page)).toEqual([]);
+      expect(await axeViolations(page, `${theme}, ${device}`)).toEqual([]);
     });
   }
 }
