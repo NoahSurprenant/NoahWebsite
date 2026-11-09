@@ -63,7 +63,9 @@ export class TerminalThemeComponent {
   protected readonly visitors = signal<number[] | null>(null);
   protected readonly visitorGraph = computed(() => {
     const hours = this.visitors();
-    return hours && { line: sparkline(hours), total: short(hours.reduce((a, b) => a + b, 0)) };
+    // Unique visitors are counted per hour, so the same person in two hours counts twice: the
+    // hours can't be added up into a total, so the last full hour is shown
+    return hours && { line: sparkline(hours), last: short(hours.at(-1)!) };
   });
 
   private readonly screen = viewChild.required<ElementRef<HTMLElement>>('screen');
@@ -90,7 +92,11 @@ export class TerminalThemeComponent {
       }
     });
     let destroyed = false;
-    inject(DestroyRef).onDestroy(() => (destroyed = true));
+    inject(DestroyRef).onDestroy(() => {
+      destroyed = true;
+      // The command in the address bar is this theme's; another theme mustn't carry it
+      this.forgetLink();
+    });
     this.github.load().then(data => this.data.set(data), () => {});
     loadVisitors().then(hours => this.visitors.set(hours));
 
@@ -119,8 +125,18 @@ export class TerminalThemeComponent {
 
   /** A link like /#fetch%20Headhunter runs that command, if it's one that only prints. */
   private runFromLink() {
-    const command = decodeURIComponent(location.hash.slice(1)).trim();
+    let command: string;
+    try {
+      command = decodeURIComponent(location.hash.slice(1)).trim();
+    } catch {
+      return; // A broken escape (#100%) isn't a command
+    }
     if (SHAREABLE.has(command.split(/\s+/)[0])) this.run(command, false);
+  }
+
+  /** Takes the command out of the address bar. */
+  private forgetLink() {
+    if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
   }
 
   /** Runs a command line and prints what it outputs. */
@@ -133,6 +149,7 @@ export class TerminalThemeComponent {
       this.historyIndex = this.history.length;
       // So the address bar can be copied to show someone the same thing
       if (SHAREABLE.has(command)) history.replaceState(history.state, '', `#${encodeURIComponent(commandLine.trim())}`);
+      else if (command === 'clear' || command === 'cls') this.forgetLink();
     }
 
     switch (command) {
@@ -226,20 +243,29 @@ export class TerminalThemeComponent {
     return [{ kind: 'output', text: repoCard(repo) }, { kind: 'link', href: repo.url, text: repo.url.replace(/^https:\/\//, '') }];
   }
 
-  /** Prints what `make` builds from the GitHub snapshot, once it's loaded. */
+  /**
+   * Prints what `make` builds from the GitHub numbers. Until they're in, a placeholder holds the
+   * place under the command, so the answer lands there even if more was typed meanwhile (and not at
+   * all if the screen was cleared).
+   */
   private withGithub(make: (data: GithubData) => Line[]) {
-    const print = (lines: Line[]) => this.lines.update(all => [...all, ...lines]);
     const data = this.data();
     if (data) {
-      print(make(data));
+      this.lines.update(all => [...all, ...make(data)]);
       return;
     }
+    const waiting: Line = { kind: 'output', text: 'Fetching from GitHub...' };
+    this.lines.update(all => [...all, waiting]);
+    const replace = (lines: Line[]) => this.lines.update(all => {
+      const at = all.indexOf(waiting);
+      return at < 0 ? all : [...all.slice(0, at), ...lines, ...all.slice(at + 1)];
+    });
     this.github.load().then(
       loaded => {
         this.data.set(loaded);
-        print(make(loaded));
+        replace(make(loaded));
       },
-      () => print([{ kind: 'output', text: 'Could not reach GitHub. Try again in a moment.' }]),
+      () => replace([{ kind: 'output', text: 'Could not reach GitHub. Try again in a moment.' }]),
     );
   }
 

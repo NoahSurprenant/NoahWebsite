@@ -31,7 +31,8 @@ for (const keys of ROWS) {
 }
 // The space bar is centred under the others
 CENTERS.set('Space', 7.25);
-const WIDTH = 15;
+/** Every row is this many key units wide */
+const WIDTH = 14.5;
 /** How long a key stays lit */
 const LIT_MS = 160;
 

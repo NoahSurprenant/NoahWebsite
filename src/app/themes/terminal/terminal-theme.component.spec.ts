@@ -283,12 +283,25 @@ describe('TerminalThemeComponent extras', () => {
     expect(open).not.toHaveBeenCalled();
   });
 
-  it('puts what it printed in the address bar', async () => {
-    const { terminal } = await create();
+  it('puts what it printed in the address bar, until the screen is cleared or the theme left', async () => {
+    const { terminal, fixture } = await create();
     terminal.run('neofetch');
     expect(location.hash).toBe('#neofetch');
     terminal.run('echo hi');
     expect(location.hash).toBe('#neofetch');
+    terminal.run('clear');
+    expect(location.hash).toBe('');
+    terminal.run('cls');
+    expect(location.hash).toBe('');
+    terminal.run('neofetch');
+    fixture.destroy();
+    expect(location.hash).toBe('');
+  });
+
+  it('ignores a link with a broken escape', async () => {
+    window.history.replaceState(null, '', '/#100%');
+    const { terminal } = await create();
+    expect(terminal.lines().map(l => l.kind)).toEqual(['command', 'name', 'command', 'links']);
   });
 
   it('prints the GitHub profile, a repo, the repos and the year', async () => {
@@ -312,6 +325,36 @@ describe('TerminalThemeComponent extras', () => {
 
     el.querySelector<HTMLButtonElement>('.repos button')!.click();
     expect(terminal.lines().at(-3)).toEqual({ kind: 'command', text: 'fetch Headhunter' });
+  });
+
+  it('keeps a slow answer under its command, and drops it once the screen is cleared', async () => {
+    let answer!: (value: Response) => void;
+    // GitHub's answer waits until the test gives it; there are no visitors
+    vi.stubGlobal('fetch', vi.fn((url: string) => url === GITHUB_API_URL
+      ? new Promise<Response>(resolve => (answer = resolve))
+      : Promise.resolve(new Response('', { status: 503 }))));
+    const { terminal, settle, printed } = await create();
+    terminal.run('neofetch');
+    expect(printed()).toContain('neofetch\nFetching from GitHub...');
+    terminal.run('echo after');
+    answer(new Response(JSON.stringify(SAMPLE)));
+    await settle();
+    expect(printed().indexOf('Contribs')).toBeLessThan(printed().indexOf('echo after'));
+    expect(printed()).not.toContain('Fetching from GitHub');
+  });
+
+  it('prints nothing for an answer that comes after a clear', async () => {
+    let answer!: (value: Response) => void;
+    // GitHub's answer waits until the test gives it; there are no visitors
+    vi.stubGlobal('fetch', vi.fn((url: string) => url === GITHUB_API_URL
+      ? new Promise<Response>(resolve => (answer = resolve))
+      : Promise.resolve(new Response('', { status: 503 }))));
+    const { terminal, settle } = await create();
+    terminal.run('neofetch');
+    terminal.run('clear');
+    answer(new Response(JSON.stringify(SAMPLE)));
+    await settle();
+    expect(terminal.lines()).toEqual([]);
   });
 
   it('waits for the snapshot, and says so when GitHub is out of reach', async () => {
@@ -454,7 +497,8 @@ describe('TerminalThemeComponent extras', () => {
   it('shows the cat and the visitors in the status line', async () => {
     const { el, terminal, fixture } = await create();
     expect(el.querySelector('.cat-state')!.textContent).toContain('napping');
-    expect(el.querySelector('.visitors')!.getAttribute('aria-label')).toBe('6 visitors in the last 48 hours');
+    expect(el.querySelector('.visitors')!.getAttribute('aria-label')).toBe('Visitors per hour over the last 48 hours; 3 in the last hour');
+    expect(el.querySelector('.visitors')!.textContent).toContain('3/h');
     terminal.run('pet off');
     fixture.detectChanges();
     expect(el.querySelector('.cat-state')).toBeNull();

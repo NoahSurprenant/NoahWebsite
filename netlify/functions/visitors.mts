@@ -19,10 +19,14 @@ interface Group {
   uniq: { uniques: number };
 }
 
+// Failures are cached too, so a missing setting or a Cloudflare outage isn't a call per page view
+const failure = (status: number, error: string) =>
+  Response.json({ error }, { status, headers: { 'Netlify-CDN-Cache-Control': 'public, s-maxage=600' } });
+
 export default async () => {
   const token = process.env.CLOUDFLARE_ANALYTICS_TOKEN;
   const zone = process.env.CLOUDFLARE_ZONE_ID;
-  if (!token || !zone) return Response.json({ error: 'not configured' }, { status: 503 });
+  if (!token || !zone) return failure(503, 'not configured');
 
   const hour = 3600_000;
   const until = Math.floor(Date.now() / hour) * hour;
@@ -34,10 +38,14 @@ export default async () => {
       query: QUERY,
       variables: { zone, since: new Date(since).toISOString(), until: new Date(until).toISOString() },
     }),
+  }).catch(error => {
+    console.error(error);
+    return null;
   });
+  if (!response) return failure(502, 'analytics unavailable');
   const body = await response.json().catch(() => null);
   const groups: Group[] | undefined = body?.data?.viewer?.zones?.[0]?.httpRequests1hGroups;
-  if (!response.ok || !groups) return Response.json({ error: 'analytics unavailable' }, { status: 502 });
+  if (!response.ok || !groups) return failure(502, 'analytics unavailable');
 
   // Hours with no traffic are missing from the answer; fill them with zeros
   const byHour = new Map(groups.map(g => [Date.parse(g.dimensions.datetime), g.uniq.uniques]));

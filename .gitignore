@@ -48,5 +48,6 @@ Thumbs.db
 /playwright/.cache
 /screenshots
 
-# Lighthouse CI reports
+# Lighthouse CI reports, and the e2e run's axe scans
 /.lighthouseci/
+/axe-results/

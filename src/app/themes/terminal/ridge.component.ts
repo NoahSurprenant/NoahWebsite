@@ -98,6 +98,7 @@ export class RidgeComponent {
   }
 
   pick(index: number | null) {
+    if (index === this.picked()) return;
     this.picked.set(index);
     this.draw();
   }
@@ -118,8 +119,9 @@ export class RidgeComponent {
     const width = canvas.clientWidth || 640;
     const height = canvas.clientHeight || 400;
     const scale = window.devicePixelRatio;
-    canvas.width = Math.round(width * scale);
-    canvas.height = Math.round(height * scale);
+    // Resizing the canvas reallocates it, so only when its size changed
+    const pixels = [Math.round(width * scale), Math.round(height * scale)];
+    if (canvas.width !== pixels[0] || canvas.height !== pixels[1]) [canvas.width, canvas.height] = pixels;
     context.setTransform(scale, 0, 0, scale, 0, 0);
     context.clearRect(0, 0, width, height);
 

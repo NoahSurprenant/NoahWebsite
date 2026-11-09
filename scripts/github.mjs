@@ -36,9 +36,10 @@ export async function snapshot(token = process.env.GITHUB_TOKEN) {
   const user = body?.data?.user;
   if (!response.ok || !user) throw new Error(`GitHub GraphQL: ${response.status} ${JSON.stringify(body?.errors ?? '')}`);
 
-  // An org can refuse a token (PlayGrifball refuses ones that live longer than a year); the
-  // rest still comes through, and the reason is logged
-  if (body.errors) console.warn(`GitHub GraphQL: ${body.errors.map(e => e.message).join('; ')}`);
+  // An org can refuse a token (PlayGrifball refuses ones that live longer than a year). The rest
+  // still comes through, but a list missing those repos isn't a good answer: fail, so the last
+  // full one is served instead
+  if (body.errors) throw new Error(`GitHub GraphQL: ${body.errors.map(e => e.message).join('; ')}`);
   const lists = [
     ...user.repositories.nodes.map(r => ({ ...r, prefix: '' })),
     ...ORGS.flatMap((org, i) => (body.data[`org${i}`]?.repositories.nodes ?? []).map(r => ({ ...r, prefix: `${org}/` }))),

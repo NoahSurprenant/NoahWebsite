@@ -5,6 +5,8 @@ const port = 4300;
 
 export default defineConfig({
   testDir: 'e2e',
+  // Clears the last run's axe scans (e2e/axe.ts), which each test appends to
+  globalSetup: './e2e/global-setup.ts',
   forbidOnly: !!process.env['CI'],
   // One retry at most, so a one-off hiccup on a shared runner doesn't fail the PR but a real
   // breakage (which fails every time) still does

@@ -72,8 +72,8 @@
         <span class="cat-state" aria-hidden="true"><span class="dim">cat</span> {{ cat.mood() }}</span>
         }
         @if (visitorGraph(); as graph) {
-        <span class="visitors" role="img" [attr.aria-label]="graph.total + ' visitors in the last 48 hours'">
-            <span class="dim" aria-hidden="true">48h</span> <span class="spark" aria-hidden="true">{{ graph.line }}</span> <span aria-hidden="true">{{ graph.total }}</span>
+        <span class="visitors" role="img" [attr.aria-label]="'Visitors per hour over the last 48 hours; ' + graph.last + ' in the last hour'">
+            <span class="dim" aria-hidden="true">48h</span> <span class="spark" aria-hidden="true">{{ graph.line }}</span> <span aria-hidden="true">{{ graph.last }}/h</span>
         </span>
         }
     </div>

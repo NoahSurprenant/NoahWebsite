@@ -44,6 +44,8 @@ describe('Cat', () => {
     vi.advanceTimersByTime(3000);
     expect(cat.mood()).toBe('watching');
     expect(cat.pet('on')).toBe('The cat is already here.');
+    vi.advanceTimersByTime(15000);
+    expect(cat.mood()).toBe('napping');
   });
 
   it('goes away and comes back, remembering', () => {

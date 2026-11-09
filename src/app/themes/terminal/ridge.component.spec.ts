@@ -48,12 +48,16 @@ describe('RidgeComponent', () => {
 
   it('picks out the week under the pointer, and says how busy it was', async () => {
     stubMatchMedia(REDUCED_MOTION);
-    fakeCanvas();
+    const calls = fakeCanvas();
     const { fixture, el, canvas } = await create();
     const caption = () => el.querySelector('.caption')!.textContent;
     canvas.dispatchEvent(new MouseEvent('pointermove', { clientY: 470 }));
     fixture.detectChanges();
     expect(caption()).toBe('Week of 2026-11-08: 12 contributions');
+    // Moving within the same week doesn't draw it again
+    const drawn = calls.lines;
+    canvas.dispatchEvent(new MouseEvent('pointermove', { clientY: 465 }));
+    expect(calls.lines).toBe(drawn);
     canvas.dispatchEvent(new MouseEvent('pointermove', { clientY: -100 }));
     fixture.detectChanges();
     expect(caption()).toBe('Week of 2026-10-31: 2 contributions');

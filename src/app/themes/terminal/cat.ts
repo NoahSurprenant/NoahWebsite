@@ -42,10 +42,7 @@ export class Cat {
     if (code !== this.key()) this.facingLeft.set(leftOf(code, this.key()));
     this.key.set(code);
     this.mood.set('chasing');
-    this.later(POUNCE_MS, () => {
-      this.mood.set('watching');
-      this.later(DOZE_MS, () => this.mood.set('napping'));
-    });
+    this.later(POUNCE_MS, () => this.watch());
   }
 
   /** `pet`, `pet on`, `pet off`. Returns what the terminal prints. */
@@ -62,8 +59,14 @@ export class Cat {
     }
     if (arg === 'on') return 'The cat is already here.';
     this.mood.set('purring');
-    this.later(PURR_MS, () => this.mood.set('watching'));
+    this.later(PURR_MS, () => this.watch());
     return 'prrrrr';
+  }
+
+  /** Watches for a while, then dozes off. */
+  private watch() {
+    this.mood.set('watching');
+    this.later(DOZE_MS, () => this.mood.set('napping'));
   }
 
   private later(ms: number, then: () => void) {

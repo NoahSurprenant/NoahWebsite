@@ -14,7 +14,8 @@ export default async () => {
   const store = getStore('github');
   try {
     const data = { ...(await snapshot()), collected: new Date().toISOString() };
-    await store.setJSON(KEY, data);
+    // Not saving it is no reason not to serve it
+    await store.setJSON(KEY, data).catch(error => console.error('Saving the answer failed', error));
     return Response.json(data, {
       headers: {
         'Cache-Control': 'public, max-age=3600',
