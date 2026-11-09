@@ -1,10 +1,11 @@
-import { AfterViewInit, Component, computed, effect, ElementRef, OnDestroy, OnInit, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
+import { AfterViewInit, Component, computed, effect, ElementRef, inject, OnDestroy, OnInit, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { Box3, DirectionalLight, Euler, IcosahedronGeometry, IUniform, Mesh, Object3D, PerspectiveCamera, Scene, ShaderMaterial, Texture, Timer, Vector2, Vector3, WebGLRenderer } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ASSET_PATH } from '../assets';
 import { Fog } from '../fog/fog';
-import { Item } from '../item';
+import { Item, Model } from '../item';
+import { ITEM_TEXTS, SkyrimItem } from '../skyrim-item';
 import { getGPUTier } from 'detect-gpu';
 import { Gestures } from '../themes/gestures';
 
@@ -97,7 +98,6 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
     this.OriginalPos = this.positions[initialIndex];
     this.itemPos = this.OriginalPos;
 
-    this.itemIndex.set(this.getNewItemIndex());
 
     const light = new DirectionalLight(0xffffff, 1);
     light.position.set(1, 1, 1);
@@ -460,7 +460,7 @@ void main() {
 
   public toggle() {
     window.clearInterval(this.intervalHandle);
-    this.itemIndex.set(this.getNewItemIndex());
+    this.chosen.next();
   }
 
   private GetRandomInt(min: number, max: number)
@@ -473,15 +473,6 @@ void main() {
       let index = this.GetRandomInt(0, this.positions.length - 1);
       if (this.positions[index] !== this.OriginalPos) {
         return this.positions[index];
-      }
-    }
-  }
-
-  private getNewItemIndex() {
-    while (true) {
-      let index = this.GetRandomInt(0, this.items.length - 1);
-      if (index !== this.itemIndex()) {
-        return index;
       }
     }
   }
@@ -511,55 +502,46 @@ void main() {
 
   public readonly timer = new Timer();
 
-  public itemIndex = signal(-1);
-  public item = computed(() => this.items[this.itemIndex()]);
-  public items: Item[] =
+  // Which item, shared with the theme, which shows its caption without waiting for this chunk
+  private readonly chosen = inject(SkyrimItem);
+  public itemIndex = this.chosen.index;
+  public item = computed<Item>(() => ({ ...this.models[this.itemIndex()], ...ITEM_TEXTS[this.itemIndex()] }));
+  // In the order of ITEM_TEXTS
+  private readonly models: Model[] =
   [
     {
       perlin: false,
       assetPath:`${ASSET_PATH}dingus.glb`,
       shouldRotate:true,
-      caption:"You have acquired a feline companion, a creature of mystery and power. Its spinning abilities shall prove to be formidable ally in battle and a constant source of amusement.",
-      attribution: { short:"dingus the cat by bean(alwayshasbean)", long:'"dingus the cat" by bean(alwayshasbean) is licensed under Creative Commons Attribution', url:"https://skfb.ly/oAtMJ"}
     },
     {
       perlin: false,
       assetPath:`${ASSET_PATH}raspberry_pi_3.glb`,
       shouldRotate:true,
-      caption:"The Raspberry Pi, a small yet powerful device, can be a valuable tool in your journey. With its capability to run various programs and control machinery, it may come in handy on your endeavors.",
       scaleOnLoad: new Vector3(2, 2, 2),
       rotationOnLoad: new Euler(10 * 3.14/180, 0, 0),
-      attribution: { short:"Raspberry Pi 3 by JoSaCo", long:'"Raspberry Pi 3" by JoSaCo is licensed under Creative Commons Attribution', url:"https://skfb.ly/OBDI"}
     },
     {
       perlin: false,
       assetPath:`${ASSET_PATH}shopping_cart.glb`,
       shouldRotate:true,
-      caption:"Carts be a mighty useful tool for any traveler, but be warned, not all carts be in good condition. Ye may come across some with a broken wheel or two, and that can make them quite difficult to maneuver.",
       scaleOnLoad: new Vector3(2, 2, 2),
-      attribution: { short:"Shopping cart model by Jiří Kuba", long:'"Shopping cart model" by Jiří Kuba is licensed under Creative Commons Attribution', url:"https://skfb.ly/6vw6D"}
     },
     {
       perlin: false,
       assetPath:`${ASSET_PATH}club_penguin_recreation.glb`,
       shouldRotate:true,
-      caption:"'Tis the ancient ritual of Tipping the Iceberg! With a mighty leap, we strike the Iceberg with all our might, causing it to shift and reveal the bounties hidden within.",
       scaleOnLoad: new Vector3(4, 4, 4),
-      attribution: { short:"Club Penguin recreation by LukeTheLPSWolf", long:'"Club Penguin recreation" by LukeTheLPSWolf is licensed under Creative Commons Attribution', url:"https://skfb.ly/oB86E"}
     },
     {
       perlin: false,
       assetPath:`${ASSET_PATH}halo_gravity_hammer.glb`,
       shouldRotate:true,
-      caption:"'Tis the gravity hammer, a weapon of great power and destruction. In the game of Grifball, it is a weapon of great importance. With a swing of this mighty hammer, a warrior can send their foes flying.",
       scaleOnLoad: new Vector3(0.0075, 0.0075, 0.0075),
-      attribution: { short:"Halo Gravity Hammer by Glitch5970", long:'"Halo Gravity Hammer" by Glitch5970 is licensed under Creative Commons Attribution', url:"https://skfb.ly/6RHzz"}
     },
     {
       perlin: true,
       shouldRotate: false,
-      caption:"Perlin Noise is a craft of subtle beauty, a technique that weaves smooth, flowing patterns. Created by Ken Perlin, it shapes textures and terrains with natural grace, free of harsh marks.",
-      attribution: { short:"pnoise by Stefan Gustavson", long:'Original Perlin noise code by Stefan Gustavson are licensed under the MIT license', url:"https://github.com/stegu/webgl-noise"}
     },
   ];
   

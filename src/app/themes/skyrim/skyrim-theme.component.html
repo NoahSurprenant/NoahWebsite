@@ -6,6 +6,22 @@
 <div class="scene-placeholder"></div>
 }
 
+<!-- The item's words are here rather than in the scene, so they paint with the page instead of
+     waiting for three.js -->
+<p class="caption" [textContent]="item.text().caption"></p>
+
+@if (item.text().attribution.url == undefined) {
+    <div>
+        <p class="attribution" [textContent]="item.text().attribution.short" [title]="item.text().attribution.long"></p>
+    </div>
+} @else {
+    <div>
+        <a [href]="item.text().attribution.url" target="_blank">
+            <p class="attribution" [textContent]="item.text().attribution.short" [title]="item.text().attribution.long"></p>
+        </a>
+    </div>
+}
+
 <ul class="list">
     <li class="name"><h1>{{ name }}</h1></li>
 
