@@ -6,13 +6,14 @@ import { Cat } from './cat';
 import { Day, findRepo, GithubData, GithubLoader } from './github';
 import { KeyboardComponent } from './keyboard.component';
 import { RidgeComponent } from './ridge.component';
-import { complete, contribSummary, HELP, neofetch, repoCard, SHAREABLE } from './shell';
+import { complete, contribSummary, HELP, LOGO, neofetch, repoCard, SHAREABLE } from './shell';
 import { loadVisitors, short, sparkline } from './visitors';
 
 export type Line =
   | { kind: 'command'; text: string }
   | { kind: 'output'; text: string }
   | { kind: 'name' }
+  | { kind: 'neofetch'; info: string }
   | { kind: 'links' }
   | { kind: 'repos'; names: string[] }
   | { kind: 'link'; href: string; text: string }
@@ -49,6 +50,7 @@ export class TerminalThemeComponent {
   protected readonly prompt = PROMPT;
   protected readonly name = NAME;
   protected readonly links = LINKS;
+  protected readonly logo = LOGO;
   protected readonly cat = inject(Cat);
   private readonly themes = inject(ThemeService);
   private readonly github = new GithubLoader();
@@ -216,7 +218,7 @@ export class TerminalThemeComponent {
   }
 
   private githubCommand(command: string, arg: string | undefined, data: GithubData): Line[] {
-    if (command === 'neofetch') return [{ kind: 'output', text: neofetch(data, PROMPT.slice(0, -3)) }];
+    if (command === 'neofetch') return [{ kind: 'neofetch', info: neofetch(data, PROMPT.slice(0, -3)) }];
     if (command === 'contrib') return [{ kind: 'ridge', days: data.days }, { kind: 'output', text: contribSummary(data.days) }];
     if (!arg) return [{ kind: 'output', text: 'usage: fetch <repo>' }, { kind: 'repos', names: data.repos.map(r => r.name) }];
     const repo = findRepo(data, arg);

@@ -85,7 +85,7 @@ export function commonPrefix(options: readonly string[], typed: string) {
 }
 
 /** A bar of `width` cells, filled in proportion. */
-export function bar(fraction: number, width = 20) {
+export function bar(fraction: number, width = 16) {
   const filled = Math.round(Math.max(0, Math.min(1, fraction)) * width);
   return '█'.repeat(filled) + '░'.repeat(width - filled);
 }
@@ -122,15 +122,15 @@ export function streaks(days: readonly Day[]) {
   return { current, longest };
 }
 
-const LOGO = String.raw`
+export const LOGO = String.raw`
  _   _  ____
 | \ | |/ ___|
 |  \| |\___ \
 | |\  | ___) |
 |_| \_||____/
-`.slice(1, -1).split('\n');
+`.slice(1, -1);
 
-/** The profile card: a logo beside the numbers. */
+/** The profile card's numbers, printed beside LOGO (under it on a phone). */
 export function neofetch(data: GithubData, prompt: string) {
   const busiest = data.days.reduce((a, b) => (b.count > a.count ? b : a));
   const { current, longest } = streaks(data.days);
@@ -146,8 +146,7 @@ export function neofetch(data: GithubData, prompt: string) {
     '',
     ...languageBars(data.languages),
   ];
-  const width = Math.max(...LOGO.map(l => l.length)) + 4;
-  return info.map((line, i) => `${(LOGO[i] ?? '').padEnd(width)}${line}`.trimEnd()).join('\n');
+  return info.join('\n');
 }
 
 const weekday = (date: string) => new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });

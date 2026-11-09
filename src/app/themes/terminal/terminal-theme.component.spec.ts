@@ -219,7 +219,7 @@ describe('TerminalThemeComponent extras', () => {
       await fixture.whenStable();
     };
     await settle();
-    const printed = () => terminal.lines().map(line => ('text' in line ? line.text : line.kind)).join('\n');
+    const printed = () => terminal.lines().map(line => ('text' in line ? line.text : 'info' in line ? line.info : line.kind)).join('\n');
     const input = el.querySelector<HTMLInputElement>('.input-line input')!;
     const key = (target: EventTarget, key: string, init: KeyboardEventInit = {}) => {
       const event = new KeyboardEvent('keydown', { key, cancelable: true, bubbles: true, ...init });

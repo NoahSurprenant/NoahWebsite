@@ -128,3 +128,10 @@ fa-icon {
         animation: fa-beat 1s ease-in-out infinite;
     }
 }
+
+/* The page's heading, looking like the rest of the list */
+.name h1 {
+    display: inline;
+    margin: 0;
+    font: inherit;
+}

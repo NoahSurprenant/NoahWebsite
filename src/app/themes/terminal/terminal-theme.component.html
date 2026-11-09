@@ -1,4 +1,6 @@
 <div class="window">
+    <!-- The page's heading, there even after clear -->
+    <h1 class="sr-only">{{ name }}</h1>
     <div class="title-bar" aria-hidden="true">guest&#64;noahsurprenant.com: ~</div>
 
     <div #screen class="screen" (click)="focusInput($event)">
@@ -8,7 +10,7 @@
                 <div><span class="prompt">{{ prompt }}</span> {{ line.text }}</div>
                 }
                 @case ('name') {
-                <h1 class="name">{{ name }}</h1>
+                <p class="name">{{ name }}</p>
                 }
                 @case ('links') {
                 <ul class="links">
@@ -16,6 +18,12 @@
                     <li><a [href]="link.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="link.label">{{ link.id }}</a></li>
                     }
                 </ul>
+                }
+                @case ('neofetch') {
+                <div class="neofetch">
+                    <pre class="logo" aria-hidden="true">{{ logo }}</pre>
+                    <pre>{{ line.info }}</pre>
+                </div>
                 }
                 @case ('repos') {
                 <ul class="links repos">
@@ -64,7 +72,7 @@
         <span class="cat-state" aria-hidden="true"><span class="dim">cat</span> {{ cat.mood() }}</span>
         }
         @if (visitorGraph(); as graph) {
-        <span class="visitors" [attr.aria-label]="graph.total + ' visitors in the last 48 hours'">
+        <span class="visitors" role="img" [attr.aria-label]="graph.total + ' visitors in the last 48 hours'">
             <span class="dim" aria-hidden="true">48h</span> <span class="spark" aria-hidden="true">{{ graph.line }}</span> <span aria-hidden="true">{{ graph.total }}</span>
         </span>
         }

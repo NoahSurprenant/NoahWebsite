@@ -52,6 +52,7 @@ describe('printing', () => {
       `a  ${bar(0.25)}  25%`,
     ]);
     expect(languageBars({ a: 1000, b: 1 }, 1)).toEqual([`a      ${bar(1000 / 1001)} 100%`, `other  ${bar(0)}  <1%`]);
+    expect(bar(0.5)).toHaveLength(16);
     expect(languageBars({})).toEqual(['(no code yet)']);
   });
 
@@ -62,9 +63,9 @@ describe('printing', () => {
     expect(streaks([])).toEqual({ current: 0, longest: 0 });
   });
 
-  it('prints the profile beside the logo', () => {
+  it('prints the profile', () => {
     const lines = neofetch(SAMPLE, 'guest@host').split('\n');
-    expect(lines[0]).toMatch(/^ _ +_ +____ +guest@host$/);
+    expect(lines.slice(0, 2)).toEqual(['guest@host', '----------']);
     expect(lines.map(l => l.trim())).toContain('Contribs   28 in the last year');
     expect(lines.some(l => l.includes('Streak     4 days (longest 4)'))).toBe(true);
     expect(lines.some(l => l.includes('Busiest    Sun 2026-11-08, 12'))).toBe(true);

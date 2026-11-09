@@ -54,6 +54,13 @@ pre {
     white-space: pre-wrap;
 }
 
+/* The logo beside the numbers, or above them where there's no room */
+.neofetch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 4ch;
+}
+
 .prompt {
     color: #9dffb6;
 }
@@ -250,4 +257,13 @@ input.hidden {
     .spark {
         font-size: 0.6em;
     }
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
