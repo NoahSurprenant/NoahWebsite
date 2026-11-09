@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, computed, effect, ElementRef, inject, OnDestroy, OnInit, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
-import { Box3, DirectionalLight, Euler, IcosahedronGeometry, IUniform, Mesh, Object3D, PerspectiveCamera, Scene, ShaderMaterial, Texture, Timer, Vector2, Vector3, WebGLRenderer } from 'three';
+import { BackSide, Box3, BoxGeometry, DirectionalLight, DoubleSide, Euler, HemisphereLight, IcosahedronGeometry, IUniform, Mesh, MeshBasicMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PMREMGenerator, Scene, ShaderMaterial, Texture, Timer, Vector2, Vector3, WebGLRenderer } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ASSET_PATH } from '../assets';
@@ -99,9 +99,15 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
     this.itemPos = this.OriginalPos;
 
 
-    const light = new DirectionalLight(0xffffff, 1);
-    light.position.set(1, 1, 1);
-    this.scene.add(light);
+    // Lit like an item in the inventory: a soft fill from above, a key light from the front left, and
+    // a warm rim from behind on the right that picks the item out of the black
+    this.scene.add(new HemisphereLight(0xfff4ea, 0x140f0b, 0.8));
+    const key = new DirectionalLight(0xfff0e0, 3);
+    key.position.set(-1.2, 1, 1);
+    this.scene.add(key);
+    const rim = new DirectionalLight(0xffc68a, 6);
+    rim.position.set(1.5, 0.6, -1.5);
+    this.scene.add(rim);
     this.scene.add(this.camera);
     this.gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 
@@ -260,7 +266,34 @@ void main() {
     // Pause the timer while the tab is hidden so the model doesn't jump when we come back
     this.timer.connect(document);
     this.requestFrame();
+    this.addReflections(this.renderer);
     this.addFogIfFastGpu();
+  }
+
+  /**
+   * Metal (the cart, the hammer) shows only what it reflects, and lights alone leave it black. It
+   * reflects a small dark room with a few warm glowing panels, drawn once here: nothing to download.
+   */
+  private async addReflections(renderer: WebGLRenderer) {
+    await yieldToMain();
+    if (this.destroyed) return;
+    const room = new Scene();
+    room.add(new Mesh(new BoxGeometry(10, 10, 10), new MeshBasicMaterial({ color: 0x050403, side: BackSide })));
+    // Brighter than white, as lamps are
+    const panel = (glow: [number, number, number], position: [number, number, number], width: number, height: number) => {
+      const mesh = new Mesh(new PlaneGeometry(width, height), new MeshBasicMaterial({ side: DoubleSide }));
+      mesh.material.color.setRGB(...glow);
+      mesh.position.set(...position);
+      mesh.lookAt(0, 0, 0);
+      room.add(mesh);
+    };
+    panel([3, 2.2, 1.4], [-4.5, 2, 3], 4, 5);
+    panel([2, 1.4, 0.8], [4.5, 1, -3], 3, 6);
+    panel([0.6, 0.45, 0.3], [0, 4.8, 0], 8, 8);
+    const pmrem = new PMREMGenerator(renderer);
+    this.scene.environment = pmrem.fromScene(room, 0.04).texture;
+    pmrem.dispose();
+    disposeObject(room);
   }
 
   private async addFogIfFastGpu() {
@@ -495,6 +528,7 @@ void main() {
     this.canvasHost().nativeElement.removeEventListener('wheel', this.onWheel);
     this.timer.dispose();
     disposeObject(this.scene);
+    this.scene.environment?.dispose();
     // The Perlin mesh isn't in the scene yet if we left while its shaders compiled
     if (this.mesh && !this.mesh.parent) disposeObject(this.mesh);
     this.renderer?.dispose();

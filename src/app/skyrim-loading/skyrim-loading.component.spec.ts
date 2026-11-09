@@ -58,7 +58,15 @@ const mocks = vi.hoisted(() => {
   return { state, FakeRenderer, FakeGLTFLoader };
 });
 
-vi.mock('three', async (original) => ({ ...(await original<typeof import('three')>()), WebGLRenderer: mocks.FakeRenderer }));
+vi.mock('three', async (original) => {
+  const three = await original<typeof import('three')>();
+  // Draws the metals' reflections with the renderer, so it's a stand-in too
+  class FakePMREMGenerator {
+    fromScene() { return { texture: new three.Texture() }; }
+    dispose() {}
+  }
+  return { ...three, WebGLRenderer: mocks.FakeRenderer, PMREMGenerator: FakePMREMGenerator };
+});
 vi.mock('three/addons/loaders/GLTFLoader.js', () => ({ GLTFLoader: mocks.FakeGLTFLoader }));
 vi.mock('detect-gpu', () => ({ getGPUTier: () => mocks.state.gpu.promise }));
 
@@ -209,6 +217,15 @@ describe('SkyrimLoadingComponent', () => {
     expect(warn).toHaveBeenCalled();
     // Resizing still keeps the camera right
     expect(() => scene['resize']()).not.toThrow();
+  });
+
+  it('gives metal a warm room to reflect, and lets it go when destroyed', async () => {
+    const { fixture, scene } = await create();
+    const reflections = scene['scene'].environment!;
+    expect(reflections).toBeInstanceOf(Texture);
+    const dispose = vi.spyOn(reflections, 'dispose');
+    fixture.destroy();
+    expect(dispose).toHaveBeenCalled();
   });
 
   it('stops setting up when it was destroyed before the renderer was made', async () => {
