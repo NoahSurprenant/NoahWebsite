@@ -1,14 +1,14 @@
 <!-- three.js is most of the bundle, so the scene is lazy: the name and links paint first.
      "on immediate" starts fetching the chunk right after that first render. -->
 @defer (on immediate) {
-<app-skyrim-loading></app-skyrim-loading>
+<app-skyrim-loading [band]="band()"></app-skyrim-loading>
 } @placeholder {
 <div class="scene-placeholder"></div>
 }
 
 <!-- The item's words are here rather than in the scene, so they paint with the page instead of
      waiting for three.js -->
-<p class="caption" [textContent]="item.text().caption"></p>
+<p #caption class="caption" [textContent]="item.text().caption"></p>
 
 @if (item.text().attribution.url == undefined) {
     <div>
@@ -22,7 +22,7 @@
     </div>
 }
 
-<ul class="list">
+<ul #list class="list">
     <li class="name"><h1>{{ name }}</h1></li>
 
     @for (link of links; track link.id) {
