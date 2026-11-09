@@ -220,7 +220,7 @@ export class TerminalThemeComponent {
 
   private githubCommand(command: string, arg: string | undefined, data: GithubData): Line[] {
     if (command === 'neofetch') return [{ kind: 'output', text: neofetch(data, PROMPT.slice(0, -3)) }];
-    if (command === 'contrib') return [{ kind: 'ridge', days: data.days }, { kind: 'output', text: contribSummary(data.days, data.private) }];
+    if (command === 'contrib') return [{ kind: 'ridge', days: data.days }, { kind: 'output', text: contribSummary(data.days) }];
     if (!arg) return [{ kind: 'output', text: 'usage: fetch <repo>' }, { kind: 'repos', names: data.repos.map(r => r.name) }];
     const repo = findRepo(data, arg);
     if (!repo) return [{ kind: 'output', text: `fetch: ${arg}: no such repo. Try: ls repos/` }];

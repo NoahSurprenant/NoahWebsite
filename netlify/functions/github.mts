@@ -1,16 +1,21 @@
 // /api/github: the terminal theme's GitHub numbers, collected live (see scripts/github.mjs) so
-// they're never more than a few hours old, however rarely the site is deployed. Netlify's CDN
-// keeps each answer for six hours, so GitHub is asked a few times a day at most. Needs
-// GITHUB_TOKEN in the Netlify site's environment (a fine-grained token with no permissions);
-// without it, or when GitHub fails, the terminal uses the copy saved at build time.
+// they're current however rarely the site is deployed. Netlify's CDN keeps each answer for six
+// hours, so GitHub is asked a few times a day at most. Needs GITHUB_TOKEN in the Netlify site's
+// environment (a fine-grained token with no permissions).
+//
+// Every good answer is also saved to Netlify Blobs. When GitHub fails (its contribution graph
+// sometimes answers 504), the last good answer is served instead, with when it was collected.
+import { getStore } from '@netlify/blobs';
 import { snapshot } from '../../scripts/github.mjs';
 
-const cachedFor = (seconds: number) => ({ 'Netlify-CDN-Cache-Control': `public, s-maxage=${seconds}` });
+const KEY = 'latest';
 
 export default async () => {
-  if (!process.env.GITHUB_TOKEN) return Response.json({ error: 'not configured' }, { status: 503, headers: cachedFor(3600) });
+  const store = getStore('github');
   try {
-    return Response.json(await snapshot(), {
+    const data = { ...(await snapshot()), collected: new Date().toISOString() };
+    await store.setJSON(KEY, data);
+    return Response.json(data, {
       headers: {
         'Cache-Control': 'public, max-age=3600',
         'Netlify-CDN-Cache-Control': 'public, s-maxage=21600, stale-while-revalidate=86400',
@@ -18,8 +23,11 @@ export default async () => {
     });
   } catch (error) {
     console.error(error);
-    // Not asked again for ten minutes, however many visitors come
-    return Response.json({ error: 'GitHub unavailable' }, { status: 502, headers: cachedFor(600) });
+    const saved = await store.get(KEY, { type: 'json' });
+    // Asked again after ten minutes, however many visitors come meanwhile
+    const retry = { 'Netlify-CDN-Cache-Control': 'public, s-maxage=600' };
+    if (saved) return Response.json(saved, { headers: retry });
+    return Response.json({ error: 'GitHub unavailable' }, { status: 502, headers: retry });
   }
 };
 

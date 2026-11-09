@@ -1,4 +1,4 @@
-/** What scripts/github-snapshot.mjs saves at build time: public repos and the contribution calendar. */
+/** What /api/github (netlify/functions/github.mts) answers: public repos and the contribution calendar. */
 export interface GithubData {
   user: string;
   /** Account creation date, YYYY-MM-DD */
@@ -7,10 +7,8 @@ export interface GithubData {
   repos: Repo[];
   /** Bytes of code per language, over all the repos */
   languages: Record<string, number>;
-  /** The last year, oldest first. Only contributions the snapshot's token can see. */
+  /** The last year, oldest first */
   days: Day[];
-  /** Contributions over the same year to repos the token can't see, which come only as a total */
-  private?: number;
 }
 
 export interface Repo {
@@ -32,21 +30,16 @@ export interface Day {
 
 /** Collected live by netlify/functions/github.mts, at most a few hours old */
 export const GITHUB_API_URL = '/api/github';
-/** The copy saved at build time, for when the live one can't be had */
-export const GITHUB_DATA_URL = 'assets/github.json';
-
-async function getJson(url: string) {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return response.json() as Promise<GithubData>;
-}
 
 /** Loads the numbers once and shares them. A failed load is retried next time they're asked for. */
 export class GithubLoader {
   private pending?: Promise<GithubData>;
 
   load(): Promise<GithubData> {
-    this.pending ??= getJson(GITHUB_API_URL).catch(() => getJson(GITHUB_DATA_URL));
+    this.pending ??= fetch(GITHUB_API_URL).then(response => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json() as Promise<GithubData>;
+    });
     this.pending.catch(() => (this.pending = undefined));
     return this.pending;
   }

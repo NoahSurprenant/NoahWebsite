@@ -3,7 +3,7 @@ import { manualFrames } from '../../testing/canvas';
 import { SAMPLE, stubFetch } from '../../testing/github';
 import { REDUCED_MOTION, stubMatchMedia } from '../../testing/match-media';
 import { ThemeService } from '../theme.service';
-import { GITHUB_DATA_URL } from './github';
+import { GITHUB_API_URL } from './github';
 import { TerminalThemeComponent } from './terminal-theme.component';
 import { VISITORS_URL } from './visitors';
 
@@ -198,7 +198,7 @@ describe('TerminalThemeComponent extras', () => {
   beforeEach(() => {
     stubMatchMedia(REDUCED_MOTION);
     localStorage.clear();
-    stubFetch({ [GITHUB_DATA_URL]: SAMPLE, [VISITORS_URL]: { hours: [1, 2, 3] } });
+    stubFetch({ [GITHUB_API_URL]: SAMPLE, [VISITORS_URL]: { hours: [1, 2, 3] } });
   });
   afterEach(() => {
     window.history.replaceState(null, '', '/');
@@ -320,7 +320,7 @@ describe('TerminalThemeComponent extras', () => {
     terminal.run('neofetch');
     await settle();
     expect(printed()).toContain('Could not reach GitHub');
-    stubFetch({ [GITHUB_DATA_URL]: SAMPLE });
+    stubFetch({ [GITHUB_API_URL]: SAMPLE });
     terminal.run('ls repos');
     await settle();
     expect(terminal.lines().at(-1)!.kind).toBe('repos');
@@ -459,7 +459,7 @@ describe('TerminalThemeComponent extras', () => {
   });
 
   it('leaves the visitors out when there are none', async () => {
-    stubFetch({ [GITHUB_DATA_URL]: SAMPLE });
+    stubFetch({ [GITHUB_API_URL]: SAMPLE });
     const { el } = await create();
     expect(el.querySelector('.visitors')).toBeNull();
   });
