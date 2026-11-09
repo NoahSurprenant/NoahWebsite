@@ -1,7 +1,12 @@
 // Collects what the terminal theme prints about GitHub (neofetch, fetch <repo>, contrib): the
-// public repos, their languages and the last year's contribution calendar, in one GraphQL query.
-// Shared by the /api/github Netlify function (live) and scripts/github-snapshot.mjs (the fallback
-// file). GraphQL needs a token: a fine-grained one with no permissions can read public data.
+// public repos, their languages and the last year's contribution calendar. Shared by the
+// /api/github Netlify function (live) and scripts/github-snapshot.mjs (the fallback file).
+//
+// The repos come from one GraphQL query, which needs a token: a fine-grained one with no
+// permissions can read public data. The calendar is read from the profile's public contribution
+// graph, which counts private work day by day like the profile does. If GitHub won't serve that
+// page, the GraphQL calendar is used instead: it only has the days in repos the token can see,
+// with the rest as one total.
 
 export const USER = 'NoahSurprenant';
 
@@ -47,10 +52,33 @@ export async function snapshot(token = process.env.GITHUB_TOKEN) {
   for (const repo of repos) {
     for (const [name, bytes] of Object.entries(repo.languages)) languages[name] = (languages[name] ?? 0) + bytes;
   }
+  const base = { user: USER, since: user.createdAt.slice(0, 10), repos, languages };
+  try {
+    return { ...base, days: await profileCalendar() };
+  } catch (error) {
+    console.warn(`Profile calendar unavailable, using GraphQL's (${error.message})`);
+  }
   const days = user.contributionsCollection.contributionCalendar.weeks
     .flatMap(w => w.contributionDays)
     .map(d => ({ date: d.date, count: d.contributionCount }));
   // Contributions to repos the token can't see come only as a total
-  const hidden = user.contributionsCollection.restrictedContributionsCount;
-  return { user: USER, since: user.createdAt.slice(0, 10), repos, languages, days, private: hidden };
+  return { ...base, days, private: user.contributionsCollection.restrictedContributionsCount };
+}
+
+/** The profile's public contribution graph: a cell per day, and a tooltip with its count. */
+async function profileCalendar() {
+  const response = await fetch(`https://github.com/users/${USER}/contributions`);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const html = await response.text();
+  const dates = new Map();
+  for (const [, date, id] of html.matchAll(/data-date="(\d{4}-\d{2}-\d{2})" id="([^"]+)"/g)) dates.set(id, date);
+  const days = [];
+  for (const [, id, text] of html.matchAll(/for="([^"]+)"[^>]*>([^<]+)</g)) {
+    const date = dates.get(id);
+    if (!date) continue;
+    const count = /^(\d+) contribution/.exec(text)?.[1];
+    days.push({ date, count: count ? Number(count) : 0 });
+  }
+  if (days.length < 300) throw new Error(`only ${days.length} days in the graph`);
+  return days.sort((a, b) => a.date.localeCompare(b.date));
 }
