@@ -60,6 +60,18 @@ async function fileFor(urlPath) {
 
 createServer(async (req, res) => {
   const { pathname } = new URL(req.url ?? '/', 'http://localhost');
+  // Stands in for the Netlify function (netlify/functions/visitors.mts): a made-up two days
+  if (pathname === '/api/visitors') {
+    res.writeHead(200, { 'Content-Security-Policy': csp, 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ hours: Array.from({ length: 48 }, (_, i) => Math.round(20 + 15 * Math.sin(i / 3.8) + (i % 5) * 3)) }));
+    return;
+  }
+  // And for netlify/functions/github.mts: a real answer, saved
+  if (pathname === '/api/github') {
+    res.writeHead(200, { 'Content-Security-Policy': csp, 'Content-Type': 'application/json' });
+    res.end(await readFile(join(repoRoot, 'e2e', 'github.json')));
+    return;
+  }
   const path = await fileFor(pathname);
   if (!path) {
     res.writeHead(404, { 'Content-Security-Policy': csp, 'Content-Type': 'text/plain' });

@@ -129,6 +129,13 @@ fa-icon {
     }
 }
 
+/* The page's heading, looking like the rest of the list */
+.name h1 {
+    display: inline;
+    margin: 0;
+    font: inherit;
+}
+
 /* Drags that start on the caption still reach the item */
 .caption {
     pointer-events: none;

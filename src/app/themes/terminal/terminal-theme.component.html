@@ -1,4 +1,6 @@
 <div class="window">
+    <!-- The page's heading, there even after clear -->
+    <h1 class="sr-only">{{ name }}</h1>
     <div class="title-bar" aria-hidden="true">guest&#64;noahsurprenant.com: ~</div>
 
     <div #screen class="screen" (click)="focusInput($event)">
@@ -8,7 +10,7 @@
                 <div><span class="prompt">{{ prompt }}</span> {{ line.text }}</div>
                 }
                 @case ('name') {
-                <h1 class="name">{{ name }}</h1>
+                <p class="name">{{ name }}</p>
                 }
                 @case ('links') {
                 <ul class="links">
@@ -16,6 +18,25 @@
                     <li><a [href]="link.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="link.label">{{ link.id }}</a></li>
                     }
                 </ul>
+                }
+                @case ('neofetch') {
+                <div class="neofetch">
+                    <pre class="logo" aria-hidden="true">{{ logo }}</pre>
+                    <pre>{{ line.info }}</pre>
+                </div>
+                }
+                @case ('repos') {
+                <ul class="links repos">
+                    @for (repo of line.names; track repo) {
+                    <li><button type="button" (click)="fetchRepo(repo)">{{ repo }}/</button></li>
+                    }
+                </ul>
+                }
+                @case ('link') {
+                <a class="url" [href]="line.href" target="_blank" rel="noopener noreferrer">{{ line.text }}</a>
+                }
+                @case ('ridge') {
+                <app-ridge [days]="line.days" />
                 }
                 @default {
                 <pre>{{ line.text }}</pre>
@@ -25,11 +46,37 @@
 
         <label class="input-line">
             <span class="prompt">{{ prompt }}</span>
+            @if (typing() !== null) {
+            <span class="typing" aria-hidden="true">{{ typing() }}</span>
+            }
             <input #input type="text" aria-label="Command (type help)" autocomplete="off" autocapitalize="off"
-                spellcheck="false" enterkeyhint="go" (keydown)="onKeydown($event)">
+                spellcheck="false" enterkeyhint="go" [class.hidden]="typing() !== null"
+                (keydown)="onKeydown($event)" (focus)="focused()" (blur)="blurred()">
         </label>
         @if (lines().length <= 4) {
-        <p class="hint">Type <kbd>help</kbd> for commands.</p>
+        <p class="hint">Type <kbd>help</kbd> for commands, or try <kbd>neofetch</kbd>. <kbd>Tab</kbd> completes.</p>
         }
     </div>
+
+    <div class="status" [class]="mode()">
+        <!-- Always there (out of sight until :), so it can take the focus in the same keypress and
+             nothing typed straight after the : is lost -->
+        <label class="ex" [class.off]="mode() !== 'command'">:<input #ex type="text" aria-label="Editor command" tabindex="-1"
+            autocomplete="off" autocapitalize="off" spellcheck="false" (keydown)="exKey($event)" (blur)="mode.set('normal')"></label>
+        @if (mode() !== 'command') {
+        <span class="mode" aria-hidden="true">{{ mode() === 'insert' ? 'INSERT' : 'NORMAL' }}</span>
+        <span class="where" aria-hidden="true">~ <span class="dim">{{ mode() === 'insert' ? 'esc: normal mode' : 'i: type · j/k: scroll · :help' }}</span></span>
+        }
+        <span class="fill"></span>
+        @if (cat.mood() !== 'away') {
+        <span class="cat-state" aria-hidden="true"><span class="dim">cat</span> {{ cat.mood() }}</span>
+        }
+        @if (visitorGraph(); as graph) {
+        <span class="visitors" role="img" [attr.aria-label]="'Visitors per hour over the last 48 hours; ' + graph.last + ' in the last hour'">
+            <span class="dim" aria-hidden="true">48h</span> <span class="spark" aria-hidden="true">{{ graph.line }}</span> <span aria-hidden="true">{{ graph.last }}/h</span>
+        </span>
+        }
+    </div>
+
+    <app-keyboard />
 </div>

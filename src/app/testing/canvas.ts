@@ -4,6 +4,8 @@ export interface CanvasCalls {
   uniforms: Map<string, unknown>;
   lost: boolean;
   lines: number;
+  /** Text drawn with fillText, in order */
+  texts: string[];
 }
 
 /**
@@ -11,7 +13,7 @@ export interface CanvasCalls {
  * or not, as asked) and a fake 2D one, both recording the calls the tests care about.
  */
 export function fakeCanvas({ webgl = true, links = true } = {}): CanvasCalls {
-  const calls: CanvasCalls = { draws: 0, uniforms: new Map(), lost: false, lines: 0 };
+  const calls: CanvasCalls = { draws: 0, uniforms: new Map(), lost: false, lines: 0, texts: [] };
   const noop = () => {};
   const gl = {
     VERTEX_SHADER: 1, FRAGMENT_SHADER: 2, ARRAY_BUFFER: 3, STATIC_DRAW: 4, FLOAT: 5, TRIANGLES: 6, LINK_STATUS: 7,
@@ -31,10 +33,17 @@ export function fakeCanvas({ webgl = true, links = true } = {}): CanvasCalls {
     getExtension: () => ({ loseContext: () => (calls.lost = true) }),
   };
   const context2d = {
-    strokeStyle: '', lineWidth: 1,
-    setTransform: noop, clearRect: noop, beginPath: noop, moveTo: noop, stroke: noop,
+    strokeStyle: '', fillStyle: '', lineWidth: 1, globalAlpha: 1, font: '', textBaseline: '',
+    setTransform: noop, clearRect: noop, beginPath: noop, moveTo: noop, stroke: noop, fill: noop,
     lineTo: () => calls.lines++,
+    fillText: (text: string) => calls.texts.push(text),
   };
+  // jsdom has no Path2D either; lines drawn on one count like lines drawn on the context
+  vi.stubGlobal('Path2D', class {
+    constructor(_from?: unknown) {}
+    lineTo() { calls.lines++; }
+    closePath() {}
+  });
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
     ((type: string) => (type === 'webgl' ? (webgl ? gl : null) : type === '2d' ? context2d : null)) as never,
   );

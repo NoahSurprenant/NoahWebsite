@@ -43,7 +43,7 @@ jobs:
   # It also screenshots every theme at every screen size and puts them on the PR for review.
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: read
       # The comment linking the screenshots
@@ -68,6 +68,21 @@ jobs:
       - name: Build and run the browser smoke test
         run: npm run e2e
 
+      # The axe scans as a table, for the run's summary and the PR comment (the report job)
+      - name: Summarise the axe scans
+        if: ${{ !cancelled() }}
+        run: |
+          node e2e/axe-summary.mjs > axe.md
+          cat axe.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the axe summary for the PR comment
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: summary-axe
+          path: axe.md
+          retention-days: 7
+
       # One picture per theme with all its screen sizes, from the layout test's screenshots. Even
       # when a test failed, since the pictures may show why.
       - name: Make the screenshot contact sheets
@@ -91,6 +106,15 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           path: screenshots/terminal.png
+          archive: false
+          retention-days: 30
+
+      - name: Upload the terminal command screenshots
+        id: terminal_commands
+        if: ${{ !cancelled() && steps.sheets.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: screenshots/terminal-commands.png
           archive: false
           retention-days: 30
 
@@ -131,6 +155,7 @@ jobs:
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           SKYRIM: ${{ steps.skyrim.outputs.artifact-url }}
           TERMINAL: ${{ steps.terminal.outputs.artifact-url }}
+          TERMINAL_COMMANDS: ${{ steps.terminal_commands.outputs.artifact-url }}
           XBOX: ${{ steps.xbox.outputs.artifact-url }}
           MECHA: ${{ steps.mecha.outputs.artifact-url }}
           ALL: ${{ steps.all.outputs.artifact-url }}
@@ -141,6 +166,8 @@ jobs:
 
           Every theme on a desktop (1920x1080), laptop (1280x720), tablet in landscape (1024x768) and portrait (768x1024), and phone in landscape (820x300) and portrait (360x640), as of $SHA:
           [Skyrim]($SKYRIM) · [Terminal]($TERMINAL) · [Xbox]($XBOX) · [Mecha]($MECHA) · [all, full size (zip)]($ALL)
+
+          The terminal after each command (help, neofetch, ls repos/, fetch, contrib, Tab, normal mode) on a desktop, tablet and phone: [Terminal commands]($TERMINAL_COMMANDS)
 
           Each theme opens as one picture in the browser (signed in to GitHub). Kept for 30 days."
           echo "$body" >> "$GITHUB_STEP_SUMMARY"
@@ -163,3 +190,109 @@ jobs:
           name: playwright-test-results
           path: test-results/
           retention-days: 7
+
+  # Lighthouse on every theme, as a desktop and as a phone (lighthouserc.cjs): accessibility, best
+  # practices and SEO must be 100. The reports are kept with the run.
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [desktop, mobile]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npx ng build
+
+      - name: Lighthouse
+        env:
+          LIGHTHOUSE_PRESET: ${{ matrix.preset }}
+        run: npx lhci autorun
+
+      # The scores as a table, for the run's summary and the PR comment (the report job), with a
+      # warning for each theme under the performance target
+      - name: Summarise the scores
+        if: ${{ !cancelled() }}
+        env:
+          LIGHTHOUSE_PRESET: ${{ matrix.preset }}
+        run: |
+          node e2e/lighthouse-summary.mjs > lighthouse-${{ matrix.preset }}.md
+          cat lighthouse-${{ matrix.preset }}.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the scores for the PR comment
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: summary-lighthouse-${{ matrix.preset }}
+          path: lighthouse-${{ matrix.preset }}.md
+          retention-days: 7
+
+      - name: Upload the Lighthouse reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lighthouse-${{ matrix.preset }}
+          path: .lighthouseci/
+          # Its name starts with a dot, which upload-artifact leaves out unless told
+          include-hidden-files: true
+          retention-days: 30
+
+  # On a PR, one comment with the axe and Lighthouse results, which each run updates in place
+  report:
+    needs: [e2e, lighthouse]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Fetch the summaries
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: summary-*
+          merge-multiple: true
+
+      - name: Post or update the comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          RUN: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          marker='<!-- test-results -->'
+          missing() { echo "### $1"; echo; echo "No results: the job didn't get that far."; }
+          reports=$(gh api "repos/$REPO/actions/runs/$RUN/artifacts" --jq \
+            '[.artifacts[] | select(.name | startswith("lighthouse-")) | "[\(.name | sub("lighthouse-"; ""))](https://github.com/'"$REPO"'/actions/runs/'"$RUN"'/artifacts/\(.id))"] | join(" · ")')
+          body="$marker
+          ## Accessibility and Lighthouse
+          As of $SHA ([run](https://github.com/$REPO/actions/runs/$RUN)).
+
+          $(cat axe.md 2>/dev/null || missing 'Accessibility (axe)')
+
+          $(cat lighthouse-desktop.md 2>/dev/null || missing 'Lighthouse, desktop')
+
+          $(cat lighthouse-mobile.md 2>/dev/null || missing 'Lighthouse, mobile')
+
+          Full Lighthouse reports (zip): ${reports:-none}"
+          existing=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq "[.[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\")))][0].id // empty" | head -n1)
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$existing" -f body="$body" > /dev/null
+          else
+            gh pr comment "$PR" -R "$REPO" --body "$body"
+          fi

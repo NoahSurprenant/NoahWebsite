@@ -1,0 +1,74 @@
+:host {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: min(560px, 70%);
+    margin: 0 auto;
+    padding: 1.6em 0 14px;
+    font-size: 12px;
+    line-height: 1;
+    color: var(--dim);
+    text-shadow: none;
+    user-select: none;
+}
+
+.row {
+    display: flex;
+    gap: 4px;
+}
+
+.key {
+    flex: 1 1 0;
+    padding: 5px 0;
+    border: 1px solid rgb(31 156 67 / 35%);
+    border-radius: 3px;
+    text-align: center;
+    opacity: 0.55;
+    transition: background-color 0.3s, color 0.3s, opacity 0.3s;
+}
+
+.key.lit {
+    background: var(--fg);
+    color: #0a0f0a;
+    opacity: 1;
+    box-shadow: 0 0 10px rgb(61 255 110 / 60%);
+    transition: none;
+}
+
+/* Sits on top of the keys, walking to the last one pressed */
+.cat {
+    position: absolute;
+    top: 0.2em;
+    transform: translateX(-50%);
+    color: var(--fg);
+    font-size: 14px;
+    white-space: pre;
+    text-shadow: 0 0 6px rgb(61 255 110 / 45%);
+    transition: left 0.6s ease-in-out;
+}
+
+.cat.left {
+    transform: translateX(-50%) scaleX(-1);
+}
+
+.cat.napping {
+    opacity: 0.6;
+}
+
+.cat.chasing {
+    animation: hop 0.3s ease-in-out 2;
+}
+
+@keyframes hop {
+    50% { translate: 0 -4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cat {
+        transition: none;
+    }
+    .cat.chasing {
+        animation: none;
+    }
+}
