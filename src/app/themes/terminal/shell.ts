@@ -140,7 +140,7 @@ export function neofetch(data: GithubData, prompt: string) {
     `Name       ${NAME}`,
     `GitHub     ${data.user} (since ${data.since.slice(0, 4)})`,
     `Repos      ${data.repos.length} public`,
-    `Contribs   ${thousands(total(data.days))} in the last year`,
+    `Contribs   ${thousands(total(data.days) + (data.private ?? 0))} in the last year${data.private ? ` (${thousands(data.private)} private)` : ''}`,
     `Streak     ${current} ${current === 1 ? 'day' : 'days'} (longest ${longest})`,
     `Busiest    ${weekday(busiest.date)} ${busiest.date}, ${busiest.count}`,
     '',
@@ -167,7 +167,8 @@ export function repoCard(repo: Repo) {
 }
 
 /** The year as a one-line summary under the landscape. */
-export function contribSummary(days: readonly Day[]) {
+export function contribSummary(days: readonly Day[], hidden = 0) {
   const w = weeks(days);
-  return `${w.length} weeks, ${thousands(total(days))} contributions. Front is this week; hover for a week.`;
+  const more = hidden ? `, plus ${thousands(hidden)} private ones not shown by day` : '';
+  return `${w.length} weeks, ${thousands(total(days))} contributions${more}. Front is this week; hover for a week.`;
 }

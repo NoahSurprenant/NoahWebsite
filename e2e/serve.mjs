@@ -66,7 +66,8 @@ createServer(async (req, res) => {
     res.end(JSON.stringify({ hours: Array.from({ length: 48 }, (_, i) => Math.round(20 + 15 * Math.sin(i / 3.8) + (i % 5) * 3)) }));
     return;
   }
-  const path = await fileFor(pathname);
+  // And for netlify/functions/github.mts: the copy saved at build time
+  const path = await fileFor(pathname === '/api/github' ? '/assets/github.json' : pathname);
   if (!path) {
     res.writeHead(404, { 'Content-Security-Policy': csp, 'Content-Type': 'text/plain' });
     res.end('Not found');

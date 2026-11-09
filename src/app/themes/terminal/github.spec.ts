@@ -1,15 +1,21 @@
 import { SAMPLE, stubFetch } from '../../testing/github';
-import { findRepo, GITHUB_DATA_URL, GithubLoader, total, weeks } from './github';
+import { findRepo, GITHUB_API_URL, GITHUB_DATA_URL, GithubLoader, total, weeks } from './github';
 
 describe('GithubLoader', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('loads the snapshot once and shares it', async () => {
-    const fetch = stubFetch({ [GITHUB_DATA_URL]: SAMPLE });
+  it('loads the live numbers once and shares them', async () => {
+    const live = { ...SAMPLE, private: 7 };
+    const fetch = stubFetch({ [GITHUB_API_URL]: live, [GITHUB_DATA_URL]: SAMPLE });
     const loader = new GithubLoader();
-    expect(await loader.load()).toEqual(SAMPLE);
-    expect(await loader.load()).toEqual(SAMPLE);
+    expect(await loader.load()).toEqual(live);
+    expect(await loader.load()).toEqual(live);
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the copy saved at build time', async () => {
+    stubFetch({ [GITHUB_API_URL]: 502, [GITHUB_DATA_URL]: SAMPLE });
+    expect(await new GithubLoader().load()).toEqual(SAMPLE);
   });
 
   it('tries again after a failed load', async () => {
@@ -17,7 +23,7 @@ describe('GithubLoader', () => {
     const loader = new GithubLoader();
     await expect(loader.load()).rejects.toThrow('HTTP 500');
     await expect(loader.load()).rejects.toThrow('HTTP 500');
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(4);
   });
 });
 

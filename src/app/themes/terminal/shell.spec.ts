@@ -70,6 +70,7 @@ describe('printing', () => {
     expect(lines.some(l => l.includes('Busiest    Sun 2026-11-08, 12'))).toBe(true);
     const one = neofetch({ ...SAMPLE, days: [{ date: '2026-11-09', count: 1 }] }, 'g');
     expect(one).toContain('Streak     1 day (longest 1)');
+    expect(neofetch({ ...SAMPLE, private: 1200 }, 'g')).toContain('Contribs   1,228 in the last year (1,200 private)');
   });
 
   it('prints a repo', () => {
@@ -91,5 +92,6 @@ describe('printing', () => {
 
   it('sums up the year', () => {
     expect(contribSummary(SAMPLE.days)).toBe('3 weeks, 28 contributions. Front is this week; hover for a week.');
+    expect(contribSummary(SAMPLE.days, 1200)).toBe('3 weeks, 28 contributions, plus 1,200 private ones not shown by day. Front is this week; hover for a week.');
   });
 });
