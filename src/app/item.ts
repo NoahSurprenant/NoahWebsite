@@ -1,17 +1,13 @@
 import { Euler, Vector3 } from "three";
+import { ItemText } from "./skyrim-item";
 
-export interface Item {
+/** An item's model and how it's shown. Its words (ItemText) are in skyrim-item.ts. */
+export interface Model {
     perlin: boolean;
     assetPath?: string;
     shouldRotate: boolean;
-    caption: string;
     rotationOnLoad?: Euler;
     scaleOnLoad?: Vector3;
-    attribution: Attribution;
 }
 
-export interface Attribution {
-    short: string;
-    long: string;
-    url?: string;
-}
+export type Item = Model & ItemText;

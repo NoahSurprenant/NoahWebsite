@@ -96,10 +96,8 @@ test('the page loads, renders the 3D scene and cycles items, with the production
     }
 
     // The deferred scene: a caption, and a canvas with something drawn on it
-    const caption = page.locator('app-skyrim-loading .caption');
+    const caption = page.locator('app-skyrim-theme .caption');
     await expect(caption).toBeVisible();
-    // "You got a cat" is the template's placeholder text, replaced by the real caption on render
-    await expect(caption).not.toHaveText('You got a cat');
     await expect(caption).toHaveText(/\S.{40,}/);
     await expect.poll(() => litPixels(page), { message: 'the canvas draws non-black pixels', timeout: 30_000 }).toBeGreaterThan(100);
     await problems.settle();
@@ -193,7 +191,7 @@ const SIZES = [
 // "text:" measures an element's text rather than its box, for right-aligned text in a wide box.
 const LAYOUT: Record<string, string[]> = {
   // The name and each icon rather than the list, whose box spans the width on phones
-  skyrim: ['.cog', 'text:app-skyrim-theme .name', 'app-skyrim-theme .list a', 'app-skyrim-loading .caption'],
+  skyrim: ['.cog', 'text:app-skyrim-theme .name', 'app-skyrim-theme .list a', 'app-skyrim-theme .caption'],
   terminal: ['.cog', 'app-terminal-theme .screen'],
   xbox: ['.cog', 'app-xbox-theme .name', 'app-xbox-theme .orb', 'app-xbox-theme .menu', 'app-select-hint'],
   mecha: ['.cog', 'app-title-card h1', 'app-hud .panel', 'app-mecha-theme .console', 'app-banner'],
@@ -246,7 +244,6 @@ for (const [theme, selectors] of Object.entries(LAYOUT)) {
       await page.setViewportSize({ width, height });
       await page.goto(`/?theme=${theme}`);
       await expect(page.locator(`app-${theme}-theme`)).toBeVisible();
-      if (theme === 'skyrim') await expect(page.locator('app-skyrim-loading .caption')).not.toHaveText('You got a cat');
       // Let the entrance animations finish and the web font arrive, both of which move things
       await page.waitForTimeout(2500);
       // For review: CI puts these on the PR (e2e/contact-sheets.mjs)
