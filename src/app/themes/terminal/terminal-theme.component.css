@@ -179,21 +179,19 @@ input.hidden {
     color: #5cc8ff;
 }
 
-/* On a touch screen: a row of commands to tap, above the status line, scrolling sideways if it must */
+/* On a touch screen: a row of commands to tap, above the status line */
 .tap {
     flex: none;
     display: flex;
-    gap: 1ch;
+    gap: 8px;
     padding: 8px 12px;
     border-top: 1px solid var(--dim);
-    overflow-x: auto;
-    scrollbar-width: none;
 }
 
 .tap button {
-    flex: none;
+    flex: auto;
     min-height: 40px;
-    padding: 0 1.5ch;
+    padding: 0 1ch;
     border: 1px solid var(--dim);
     background: none;
     color: inherit;

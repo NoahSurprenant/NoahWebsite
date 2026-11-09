@@ -335,7 +335,7 @@ describe('TerminalThemeComponent extras', () => {
     const { el, terminal, printed, fixture } = await create();
     expect(el.querySelector('.hint')!.textContent).not.toContain('Tab');
     const buttons = Array.from(el.querySelectorAll<HTMLButtonElement>('.tap button'));
-    expect(buttons.map(b => b.textContent)).toEqual(['help', 'neofetch', 'contrib', 'ls repos/', 'clear']);
+    expect(buttons.map(b => b.textContent)).toEqual(['help', 'neofetch', 'contrib', 'ls repos/']);
     buttons[2].click();
     fixture.detectChanges();
     expect(terminal.lines().at(-3)).toEqual({ kind: 'command', text: 'contrib' });

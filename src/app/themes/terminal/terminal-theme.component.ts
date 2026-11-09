@@ -26,7 +26,7 @@ export const PROMPT = 'guest@noahsurprenant.com:~$';
 // Typed out when the page opens, so the links are there without typing anything
 const BOOT_COMMANDS = ['whoami', 'ls links/'];
 /** Buttons for these on a touch screen, where typing is a chore and there's no Tab */
-const TAP_COMMANDS = ['help', 'neofetch', 'contrib', 'ls repos/', 'clear'];
+const TAP_COMMANDS = ['help', 'neofetch', 'contrib', 'ls repos/'];
 /** Milliseconds per typed character, at random between these */
 const TYPING = [45, 110];
 /** The pause after a typed command, before Enter */
