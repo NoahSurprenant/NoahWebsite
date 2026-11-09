@@ -30,7 +30,7 @@ const MAX_SPIN = 12;
 // The item stays at least this long after it was last touched, before the next can replace it
 const IDLE_MS = 10_000;
 // On portrait screens a model, as it turns, fills this much of the screen's width
-const SIDE_FILL = 0.9;
+const SIDE_FILL = 0.92;
 
 // Example of smoke with three.js
 // https://codepen.io/sbrl/pen/zNdqdd?editors=0110
@@ -775,9 +775,21 @@ interface Fit {
 function measure(model: Object3D, scale: Vector3, rotation: Euler): Fit {
   model.scale.copy(scale);
   model.rotation.copy(rotation);
-  const { min, max } = new Box3().setFromObject(model);
-  const radius = Math.hypot(Math.max(-min.x, max.x), Math.max(-min.z, max.z));
-  return { radius, minY: min.y, maxY: max.y };
+  model.updateMatrixWorld(true);
+  // Vertex by vertex: a bounding box's corners stick out well past a rounded model like the cat
+  const fit = { radius: 0, minY: Infinity, maxY: -Infinity };
+  const vertex = new Vector3();
+  model.traverse(o => {
+    if (!(o instanceof Mesh)) return;
+    const position = o.geometry.getAttribute('position');
+    for (let i = 0; i < position.count; i++) {
+      vertex.fromBufferAttribute(position, i).applyMatrix4(o.matrixWorld);
+      fit.radius = Math.max(fit.radius, Math.hypot(vertex.x, vertex.z));
+      fit.minY = Math.min(fit.minY, vertex.y);
+      fit.maxY = Math.max(fit.maxY, vertex.y);
+    }
+  });
+  return fit;
 }
 
 function clamp(value: number, min: number, max: number) {

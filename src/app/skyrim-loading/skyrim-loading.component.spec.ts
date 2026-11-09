@@ -478,7 +478,7 @@ describe('SkyrimLoadingComponent', () => {
     // bottom at the lowest the bottom of it
     expect(Math.max(...positions.map(p => clipY(p.y + 30, p.z)))).toBeCloseTo(0.8);
     expect(Math.min(...positions.map(p => clipY(p.y, p.z)))).toBeCloseTo(-0.5);
-    expect(across(radius, camera.z - 30)).toBeLessThan(0.9);
+    expect(across(radius, camera.z - 30)).toBeLessThan(0.92);
     // Looking straight ahead at it
     expect(camera.x).toBe(-20);
     expect(scene.lookAtPosition()).toEqual(new Vector3(-20, camera.y, 0));
@@ -493,7 +493,7 @@ describe('SkyrimLoadingComponent', () => {
     await flush();
     const near = scene.camPosition();
     expect(near.z).toBeLessThan(camera.z);
-    expect(across(Math.hypot(4, 4), near.z - 30)).toBeCloseTo(0.9);
+    expect(across(Math.hypot(4, 4), near.z - 30)).toBeCloseTo(0.92);
     fixture.destroy();
   });
 
