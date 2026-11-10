@@ -23,6 +23,6 @@ span {
 }
 
 /* Phones either way up */
-@media (max-width: 600px), (max-height: 500px) and (min-aspect-ratio: 1/1) {
+@media (max-width: 600px), (max-height: 540px) and (min-aspect-ratio: 1/1) {
     :host { font-size: 14px; line-height: 22px; }
 }

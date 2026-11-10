@@ -180,6 +180,10 @@ test('the cog switches theme, puts it in the URL and remembers it', async ({ pag
 const SIZES = [
   ['desktop', 1920, 1080],
   ['laptop', 1280, 720],
+  // Short windows: a small laptop, or a browser that isn't maximised
+  ['laptop', 1366, 657],
+  ['laptop', 1080, 567],
+  ['laptop', 1100, 520],
   ['tablet-landscape', 1024, 768],
   ['tablet-portrait', 768, 1024],
   // A phone on its side with the browser's address and tab bars showing: little height is left
