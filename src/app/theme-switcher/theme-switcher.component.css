@@ -71,3 +71,49 @@
 .menu button[aria-pressed="true"]::after {
     content: " \2713";
 }
+
+/* Until the menu is first opened, an "N themes" beside the cog, its point towards it */
+.hint {
+    position: fixed;
+    top: 25px;
+    left: 70px;
+    z-index: 10000;
+    padding: 4px 10px;
+    border: 1px solid var(--switcher-accent);
+    border-radius: var(--switcher-radius, 4px);
+    background: var(--switcher-bg);
+    color: var(--switcher-fg);
+    font: 14px/18px var(--switcher-font);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.hint::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -6px;
+    width: 10px;
+    height: 10px;
+    border: solid var(--switcher-accent);
+    border-width: 0 0 1px 1px;
+    background: var(--switcher-bg);
+    transform: translateY(-50%) rotate(45deg);
+    /* Only the corner outside the box, so a see-through background isn't doubled */
+    clip-path: polygon(0 0, 0 100%, 100% 100%);
+}
+
+/* In, a nudge towards the cog, and out as it's taken away (HINT_MS) */
+@media (prefers-reduced-motion: no-preference) {
+    .hint {
+        animation: hint 8s ease-in-out both;
+    }
+}
+
+@keyframes hint {
+    0% { opacity: 0; transform: translateX(8px); }
+    5%, 15%, 25% { opacity: 1; transform: none; }
+    10%, 20% { transform: translateX(-4px); }
+    92% { opacity: 1; }
+    100% { opacity: 0; }
+}

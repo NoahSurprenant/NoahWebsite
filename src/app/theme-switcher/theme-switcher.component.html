@@ -3,7 +3,14 @@
     <fa-icon [icon]="faGear"></fa-icon>
 </button>
 
-<div #menu id="theme-menu" class="menu" popover role="group" aria-label="Themes">
+@if (hint()) {
+<!-- Only for the eyes: the cog already says what it does. A click on it opens the menu too. -->
+<button class="hint" type="button" popovertarget="theme-menu" tabindex="-1" aria-hidden="true">
+    {{ themes.length }} themes
+</button>
+}
+
+<div #menu id="theme-menu" class="menu" popover role="group" aria-label="Themes" (toggle)="opened()">
     @for (theme of themes; track theme.id) {
     <button type="button" [attr.aria-pressed]="service.theme() === theme.id" (click)="select(theme.id)">
         {{ theme.label }}

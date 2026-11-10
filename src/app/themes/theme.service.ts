@@ -2,7 +2,7 @@ import { DOCUMENT, effect, inject, Injectable, signal } from '@angular/core';
 import { DEFAULT_THEME, parseTheme, ThemeId, THEMES } from './themes';
 
 export const THEME_PARAM = 'theme';
-const STORAGE_KEY = 'theme';
+export const STORAGE_KEY = 'theme';
 
 /**
  * The current theme. A ?theme= link wins (so a shared link always shows what was sent), then the
