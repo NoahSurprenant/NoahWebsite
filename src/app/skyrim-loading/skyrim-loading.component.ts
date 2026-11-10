@@ -106,12 +106,12 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
 
 
     // Lit like an item in the inventory: a soft fill from above, a key light from the front left, and
-    // a warm rim from behind on the right that picks the item out of the black
-    this.scene.add(new HemisphereLight(0xfff4ea, 0x140f0b, 0.8));
-    const key = new DirectionalLight(0xfff0e0, 3);
+    // a faint warm rim from behind on the right that picks the item out of the black
+    this.scene.add(new HemisphereLight(0xfffaf5, 0x0f0e0d, 0.5));
+    const key = new DirectionalLight(0xfffaf3, 1.8);
     key.position.set(-1.2, 1, 1);
     this.scene.add(key);
-    const rim = new DirectionalLight(0xffc68a, 6);
+    const rim = new DirectionalLight(0xffe6cc, 2);
     rim.position.set(1.5, 0.6, -1.5);
     this.scene.add(rim);
     this.scene.add(this.camera);
@@ -290,9 +290,9 @@ void main() {
       mesh.lookAt(0, 0, 0);
       room.add(mesh);
     };
-    panel([3, 2.2, 1.4], [-4.5, 2, 3], 4, 5);
-    panel([2, 1.4, 0.8], [4.5, 1, -3], 3, 6);
-    panel([0.6, 0.45, 0.3], [0, 4.8, 0], 8, 8);
+    panel([1.6, 1.45, 1.25], [-4.5, 2, 3], 4, 5);
+    panel([1.1, 0.95, 0.8], [4.5, 1, -3], 3, 6);
+    panel([0.4, 0.37, 0.33], [0, 4.8, 0], 8, 8);
     const pmrem = new PMREMGenerator(renderer);
     this.scene.environment = pmrem.fromScene(room, 0.04).texture;
     pmrem.dispose();
