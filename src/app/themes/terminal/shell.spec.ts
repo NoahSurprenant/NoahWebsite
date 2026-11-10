@@ -92,5 +92,6 @@ describe('printing', () => {
 
   it('sums up the year', () => {
     expect(contribSummary(SAMPLE.days)).toBe('3 weeks, 28 contributions. Front is this week; hover for a week.');
+    expect(contribSummary(SAMPLE.days, true)).toBe('3 weeks, 28 contributions. Front is this week; tap for a week.');
   });
 });

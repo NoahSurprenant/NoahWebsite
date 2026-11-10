@@ -179,6 +179,35 @@ input.hidden {
     color: #5cc8ff;
 }
 
+/* On a touch screen: a row of commands to tap, above the status line */
+.tap {
+    flex: none;
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--dim);
+}
+
+.tap button {
+    flex: auto;
+    min-height: 40px;
+    padding: 0 1ch;
+    border: 1px solid var(--dim);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-shadow: inherit;
+    cursor: pointer;
+}
+
+.tap button:active,
+.tap button:focus-visible {
+    outline: none;
+    background: var(--fg);
+    color: #0a0f0a;
+    text-shadow: none;
+}
+
 /* Vim's status line: the mode, then the cat and the visitors on the right */
 .status {
     flex: none;
@@ -212,6 +241,22 @@ input.hidden {
 
 .dim {
     color: var(--dim);
+}
+
+/* Spaced with a gap: the spaces between the spans don't survive the template */
+.visitors {
+    display: flex;
+    align-items: baseline;
+    gap: 1ch;
+}
+
+/* A little brighter than the other labels, so 48h and the count read at a glance */
+.visitors .dim {
+    color: #2fc55c;
+}
+
+.visitors .count {
+    font-weight: bold;
 }
 
 .spark {
@@ -250,8 +295,7 @@ input.hidden {
     .status .mode {
         margin-left: -12px;
     }
-    .status .where,
-    .visitors .dim {
+    .status .where {
         display: none;
     }
     .spark {

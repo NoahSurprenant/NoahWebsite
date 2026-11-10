@@ -481,6 +481,61 @@ describe('SkyrimLoadingComponent', () => {
     expect(scene.camPosition().equals(new Vector3(0, 0, 80))).toBe(true);
   });
 
+  it('fills the band between the links and the caption with the model on portrait screens', async () => {
+    vi.stubGlobal('innerWidth', 390);
+    vi.stubGlobal('innerHeight', 844);
+    const { fixture, scene } = await create(0);
+    fixture.componentRef.setInput('band', { top: 0.1, bottom: 0.75 });
+    // A model 10 wide, 20 deep and 30 tall, standing on the point it's placed by
+    const tall = new Group();
+    const box = new Mesh(new BoxGeometry(10, 30, 20), new MeshBasicMaterial());
+    box.position.y = 15;
+    tall.add(box);
+    mocks.state.loads.at(-1)!.onLoad({ scene: tall });
+    await flush();
+    const tan = Math.tan(25 * Math.PI / 180);
+    const aspect = 390 / 844;
+    // How much of the width a model sweeping a circle of this radius fills, from this far in front of it
+    const across = (radius: number, distance: number) => radius / Math.sqrt(distance ** 2 - radius ** 2) / (tan * aspect);
+    const camera = scene.camPosition();
+    const radius = Math.hypot(5, 10);
+    // In clip space, where 1 is the top of the screen and -1 the bottom, from the front of the circle
+    const clipY = (y: number, z: number) => (y - camera.y) / ((camera.z - z - radius) * tan);
+    const positions: Vector3[] = scene['positions'];
+    // Too tall to fill the width: its top at the highest spot touches the top of the band, and its
+    // bottom at the lowest the bottom of it
+    expect(Math.max(...positions.map(p => clipY(p.y + 30, p.z)))).toBeCloseTo(0.8);
+    expect(Math.min(...positions.map(p => clipY(p.y, p.z)))).toBeCloseTo(-0.5);
+    expect(across(radius, camera.z - 30)).toBeLessThan(0.92);
+    // Looking straight ahead at it
+    expect(camera.x).toBe(-20);
+    expect(scene.lookAtPosition()).toEqual(new Vector3(-20, camera.y, 0));
+
+    // A small, flat model fills the width instead, and the camera comes closer. The cart is shown
+    // at twice its size
+    const flat = new Group();
+    flat.add(new Mesh(new BoxGeometry(4, 1, 4), new MeshBasicMaterial()));
+    scene.itemIndex.set(2);
+    TestBed.tick();
+    mocks.state.loads.at(-1)!.onLoad({ scene: flat });
+    await flush();
+    const near = scene.camPosition();
+    expect(near.z).toBeLessThan(camera.z);
+    expect(across(Math.hypot(4, 4), near.z - 30)).toBeCloseTo(0.92);
+    fixture.destroy();
+  });
+
+  it('moves smoothly from the landscape camera to the fitted one as the screen narrows', async () => {
+    vi.stubGlobal('innerWidth', 1000);
+    vi.stubGlobal('innerHeight', 1000);
+    const { scene } = await create(0);
+    // A square screen pans 40% of the way
+    const fitted: Vector3 = scene['framing']();
+    expect(scene.lookAtPosition().x).toBeCloseTo(-20 * 0.4);
+    expect(scene.lookAtPosition().y).toBeCloseTo(fitted.y * 0.4);
+    expect(scene.camPosition().z).toBeCloseTo(80 * 0.6 + fitted.z * 0.4);
+  });
+
   describe('turned and zoomed by hand', () => {
     /** A scene showing a loaded model, with the clock stopped at 0 so nothing drifts by itself. */
     async function playWith(item = 0, loaded = model().scene) {

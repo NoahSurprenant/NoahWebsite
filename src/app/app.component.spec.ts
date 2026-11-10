@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { DeferBlockBehavior, DeferBlockState, TestBed } from '@angular/core/testing';
 import { AppComponent, isAprilFools } from './app.component';
 import { SkyrimLoadingComponent } from './skyrim-loading/skyrim-loading.component';
@@ -8,13 +8,19 @@ import { SkyrimThemeComponent } from './themes/skyrim/skyrim-theme.component';
 
 // The real scene needs WebGL, which the test DOM doesn't have
 @Component({ selector: 'app-skyrim-loading', template: '<p class="stub-scene"></p>' })
-class SkyrimLoadingStubComponent {}
+class SkyrimLoadingStubComponent {
+  readonly band = input<unknown>();
+}
+
+// jsdom has no ResizeObserver, which the Skyrim theme measures its caption with
+const stubResizeObserver = () => vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
 
 const LINK_NAMES = ['LinkedIn', 'GitHub', 'Email', 'Resume (PDF)'];
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     stubMatchMedia(REDUCED_MOTION);
+    stubResizeObserver();
     localStorage.clear();
     window.history.replaceState(null, '', '/');
     TestBed.overrideComponent(SkyrimThemeComponent, {
@@ -111,6 +117,7 @@ describe('AppComponent watermark', () => {
   function loadOn(day: Date) {
     vi.useFakeTimers({ toFake: ['Date'], now: day });
     stubMatchMedia(REDUCED_MOTION);
+    stubResizeObserver();
     TestBed.overrideComponent(SkyrimThemeComponent, {
       remove: { imports: [SkyrimLoadingComponent] },
       add: { imports: [SkyrimLoadingStubComponent] },

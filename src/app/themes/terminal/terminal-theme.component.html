@@ -54,9 +54,22 @@
                 (keydown)="onKeydown($event)" (focus)="focused()" (blur)="blurred()">
         </label>
         @if (lines().length <= 4) {
+        @if (touch) {
+        <p class="hint">Tap a command below, or type <kbd>help</kbd> for them all.</p>
+        } @else {
         <p class="hint">Type <kbd>help</kbd> for commands, or try <kbd>neofetch</kbd>. <kbd>Tab</kbd> completes.</p>
         }
+        }
     </div>
+
+    <!-- Out of the screen, so it stays put as the output grows -->
+    @if (touch) {
+    <div class="tap" role="group" aria-label="Commands">
+        @for (command of tapCommands; track command) {
+        <button type="button" (click)="run(command)">{{ command }}</button>
+        }
+    </div>
+    }
 
     <div class="status" [class]="mode()">
         <!-- Always there (out of sight until :), so it can take the focus in the same keypress and
@@ -73,7 +86,7 @@
         }
         @if (visitorGraph(); as graph) {
         <span class="visitors" role="img" [attr.aria-label]="'Visitors per hour over the last 48 hours; ' + graph.last + ' in the last hour'">
-            <span class="dim" aria-hidden="true">48h</span> <span class="spark" aria-hidden="true">{{ graph.line }}</span> <span aria-hidden="true">{{ graph.last }}/h</span>
+            <span class="dim" aria-hidden="true">48h</span><span class="spark" aria-hidden="true">{{ graph.line }}</span><span class="count" aria-hidden="true">{{ graph.last }}/h</span>
         </span>
         }
     </div>

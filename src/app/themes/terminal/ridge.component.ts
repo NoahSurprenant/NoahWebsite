@@ -1,5 +1,6 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, inject, input, signal, viewChild } from '@angular/core';
 import { Day, total, weeks } from './github';
+import { bar } from './shell';
 
 const FG = '#3dff6e';
 const BG = '#0a0f0a';
@@ -14,23 +15,38 @@ const SAMPLES = 84;
 /** Width of a day's hill, in days */
 const SPREAD = 0.32;
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /**
  * A year of contributions as a landscape: one ridge per week, oldest at the back, each day a hill
- * as tall as its count. Hovering (or the arrow keys) picks out a week.
+ * as tall as its count. Hovering, a tap or the arrow keys pick out a week. Where there's room, the
+ * week is broken down by day beside it, over a few numbers for the year.
  */
 @Component({
   selector: 'app-ridge',
   template: `
-    <canvas #canvas tabindex="0" role="img" [attr.aria-label]="label()"
-      (pointermove)="hover($event)" (pointerleave)="pick(null)" (keydown)="step($event)"></canvas>
-    <p class="caption" aria-live="polite">{{ caption() }}</p>
+    <div class="ridge">
+      <canvas #canvas tabindex="0" role="img" [attr.aria-label]="label()"
+        (pointermove)="hover($event)" (pointerdown)="hover($event)" (pointerleave)="leave($event)" (keydown)="step($event)"></canvas>
+      <p class="caption" aria-live="polite">{{ caption() }}</p>
+      <pre class="details">{{ details() }}</pre>
+    </div>
   `,
   styles: `
-    :host { display: block; max-width: 720px; margin: 0.5em 0; }
-    canvas { display: block; width: 100%; aspect-ratio: 4 / 3; outline: none; cursor: crosshair; }
+    :host { display: block; margin: 0.5em 0; container-type: inline-size; }
+    .ridge { display: grid; grid-template: "canvas" "caption" / minmax(0, 720px); }
+    canvas { grid-area: canvas; display: block; width: 100%; aspect-ratio: 4 / 3; outline: none; cursor: crosshair; }
     canvas:focus-visible { box-shadow: 0 0 0 1px var(--dim, #1f9c43); }
-    .caption { margin: 0.25em 0 0; color: var(--dim, #1f9c43); min-height: 1.45em; }
+    .caption { grid-area: caption; margin: 0.25em 0 0; color: var(--dim, #1f9c43); min-height: 1.45em; }
+    .details { display: none; margin: 0; font: inherit; color: var(--dim, #1f9c43); }
+    /* Beside the landscape where there's room, level with its front ridges */
+    @container (min-width: 1100px) {
+      .ridge { grid-template: ". ." 1fr "canvas caption" auto "canvas details" auto / minmax(0, 720px) auto; column-gap: 4ch; }
+      canvas { grid-row: 1 / -1; }
+      .caption { margin: 0; color: var(--fg, #3dff6e); }
+      .caption:empty::before { content: "This week"; }
+      .details { display: block; grid-area: details; margin-bottom: 22px; }
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -53,6 +69,29 @@ export class RidgeComponent {
     const week = this.weeks()[index];
     const count = total(week);
     return `Week of ${week[0].date}: ${count} ${count === 1 ? 'contribution' : 'contributions'}`;
+  });
+
+  /** The week picked out (this week if none is) day by day, then the busiest week and the average */
+  protected readonly details = computed(() => {
+    const all = this.weeks();
+    const week = all[this.picked() ?? all.length - 1];
+    const counts = new Map(week.map(day => [new Date(`${day.date}T00:00:00Z`).getUTCDay(), day.count]));
+    const most = Math.max(1, ...counts.values());
+    const pad = String(most).length;
+    const days = DAY_NAMES.map((name, day) => {
+      const count = counts.get(day);
+      // Days before the year started, or still to come
+      if (count === undefined) return name;
+      return `${name}  ${bar(count / most, 12)} ${String(count).padStart(pad)}`;
+    });
+    const busiest = all.reduce((a, b) => (total(b) > total(a) ? b : a));
+    const average = Math.round(total(this.days()) / all.length);
+    return [
+      ...days,
+      '',
+      `Busiest week  ${busiest[0].date}, ${total(busiest).toLocaleString('en-US')}`,
+      `Average       ${average.toLocaleString('en-US')} a week`,
+    ].join('\n');
   });
 
   constructor() {
@@ -86,6 +125,11 @@ export class RidgeComponent {
     const { top, gap } = this.layout(rect.width, rect.height);
     const row = Math.round((event.clientY - rect.top - top) / gap);
     this.pick(Math.max(0, Math.min(this.weeks().length - 1, row)));
+  }
+
+  /** A finger lifting off also leaves, so a tapped week stays picked until the next tap. */
+  protected leave(event: PointerEvent) {
+    if (event.pointerType !== 'touch') this.pick(null);
   }
 
   protected step(event: KeyboardEvent) {
