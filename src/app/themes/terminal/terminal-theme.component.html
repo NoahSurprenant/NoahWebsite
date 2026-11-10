@@ -86,7 +86,7 @@
         }
         @if (visitorGraph(); as graph) {
         <span class="visitors" role="img" [attr.aria-label]="'Visitors per hour over the last 48 hours; ' + graph.last + ' in the last hour'">
-            <span class="dim" aria-hidden="true">48h</span> <span class="spark" aria-hidden="true">{{ graph.line }}</span> <span aria-hidden="true">{{ graph.last }}/h</span>
+            <span class="dim" aria-hidden="true">48h</span><span class="spark" aria-hidden="true">{{ graph.line }}</span><span class="count" aria-hidden="true">{{ graph.last }}/h</span>
         </span>
         }
     </div>

@@ -243,6 +243,22 @@ input.hidden {
     color: var(--dim);
 }
 
+/* Spaced with a gap: the spaces between the spans don't survive the template */
+.visitors {
+    display: flex;
+    align-items: baseline;
+    gap: 1ch;
+}
+
+/* A little brighter than the other labels, so 48h and the count read at a glance */
+.visitors .dim {
+    color: #2fc55c;
+}
+
+.visitors .count {
+    font-weight: bold;
+}
+
 .spark {
     font-size: 0.75em;
 }
@@ -279,8 +295,7 @@ input.hidden {
     .status .mode {
         margin-left: -12px;
     }
-    .status .where,
-    .visitors .dim {
+    .status .where {
         display: none;
     }
     .spark {
