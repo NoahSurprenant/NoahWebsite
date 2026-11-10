@@ -7,7 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "e2e": "ng build && playwright test"
+    "e2e": "ng build && playwright test",
+    "og-image": "ng build && node scripts/og-image.mjs"
   },
   "private": true,
   "dependencies": {
