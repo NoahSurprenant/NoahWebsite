@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import { Group, MathUtils, Mesh, PlaneGeometry, Texture, TextureLoader, Vector2, Vector3 } from 'three';
 import { ASSET_PATH } from '../assets';
 
+// How bright the puffs are: what a white light of intensity 1 from (1, 1, 1) made of them, facing the
+// camera. A lit matte surface is its colour × the light × cos(angle) / π
+const FOG_SHADE = 1 / (Math.sqrt(3) * Math.PI);
+
 export class Fog {
   // Everything the fog draws, add this to the scene
   public readonly object = new Group();
@@ -74,7 +78,7 @@ export class Fog {
 
   // Smoke/fog
   public cloudPath = `${ASSET_PATH}clouds.png`;
-  public smokeData: { mesh: Mesh; maxHeight: number; originalHeight: number; speed: number; material: THREE.MeshLambertMaterial }[] = [];
+  public smokeData: { mesh: Mesh; maxHeight: number; originalHeight: number; speed: number; material: THREE.MeshBasicMaterial }[] = [];
   readonly NUM_INSTANCES = 500;
   readonly SMOKE_SIZE = 200;
   // Making all the puffs at once, and drawing each new material for the first time, is a long stall,
@@ -104,7 +108,9 @@ export class Fog {
 
       let speed = this.GetRandomFloat(0.05, 1);
 
-      let material = new THREE.MeshLambertMaterial();
+      // Unlit, so the item's lights leave the fog as it was: the grey that one white light at 45° gave it.
+      // Cheaper too, with hundreds of puffs over each other
+      let material = new THREE.MeshBasicMaterial({ color: new THREE.Color().setScalar(FOG_SHADE) });
       material.map = cloudText;
       material.transparent = true;
 

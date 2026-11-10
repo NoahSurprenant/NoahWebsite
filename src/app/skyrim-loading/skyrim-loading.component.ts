@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, computed, effect, ElementRef, inject, input, OnDestroy, OnInit, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
-import { Box3, DirectionalLight, Euler, IcosahedronGeometry, IUniform, Mesh, Object3D, PerspectiveCamera, Scene, ShaderMaterial, Texture, Timer, Vector2, Vector3, WebGLRenderer } from 'three';
+import { BackSide, Box3, BoxGeometry, DirectionalLight, DoubleSide, Euler, HemisphereLight, IcosahedronGeometry, IUniform, Mesh, MeshBasicMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PMREMGenerator, Scene, ShaderMaterial, Texture, Timer, Vector2, Vector3, WebGLRenderer } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ASSET_PATH } from '../assets';
@@ -105,9 +105,15 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
     this.itemPos = this.OriginalPos;
 
 
-    const light = new DirectionalLight(0xffffff, 1);
-    light.position.set(1, 1, 1);
-    this.scene.add(light);
+    // Lit like an item in the inventory: a soft fill from above, a key light from the front left, and
+    // a faint warm rim from behind on the right that picks the item out of the black
+    this.scene.add(new HemisphereLight(0xfffaf5, 0x0f0e0d, 0.5));
+    const key = new DirectionalLight(0xfffaf3, 1.8);
+    key.position.set(-1.2, 1, 1);
+    this.scene.add(key);
+    const rim = new DirectionalLight(0xffe6cc, 2);
+    rim.position.set(1.5, 0.6, -1.5);
+    this.scene.add(rim);
     this.scene.add(this.camera);
     this.gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 
@@ -266,19 +272,47 @@ void main() {
     // Pause the timer while the tab is hidden so the model doesn't jump when we come back
     this.timer.connect(document);
     this.requestFrame();
-    this.addFogIfFastGpu();
+    this.addGpuExtras(this.renderer);
   }
 
-  private async addFogIfFastGpu() {
+  /**
+   * Metal (the cart, the hammer) shows only what it reflects, and lights alone leave it black. It
+   * reflects a small dark room with a few warm glowing panels, drawn once here: nothing to download.
+   */
+  private addReflections(renderer: WebGLRenderer) {
+    const room = new Scene();
+    room.add(new Mesh(new BoxGeometry(10, 10, 10), new MeshBasicMaterial({ color: 0x050403, side: BackSide })));
+    // Brighter than white, as lamps are
+    const panel = (glow: [number, number, number], position: [number, number, number], width: number, height: number) => {
+      const mesh = new Mesh(new PlaneGeometry(width, height), new MeshBasicMaterial({ side: DoubleSide }));
+      mesh.material.color.setRGB(...glow);
+      mesh.position.set(...position);
+      mesh.lookAt(0, 0, 0);
+      room.add(mesh);
+    };
+    panel([1.6, 1.45, 1.25], [-4.5, 2, 3], 4, 5);
+    panel([1.1, 0.95, 0.8], [4.5, 1, -3], 3, 6);
+    panel([0.4, 0.37, 0.33], [0, 4.8, 0], 8, 8);
+    const pmrem = new PMREMGenerator(renderer);
+    this.scene.environment = pmrem.fromScene(room, 0.04).texture;
+    pmrem.dispose();
+    disposeObject(room);
+  }
+
+  /** Reflections for metal, wherever there's a GPU to draw them, and the fog where it's fast. */
+  private async addGpuExtras(renderer: WebGLRenderer) {
     // detect-gpu makes a WebGL context of its own to read the GPU name, which is slow too
     await yieldToMain();
     if (this.destroyed) return;
     const gpuTier = await getGPUTier({ benchmarksURL: `${ASSET_PATH}detect-gpu` });
     if (this.destroyed) return;
+    // Drawn on the CPU, the reflections' room is a long stall, for a few highlights
+    const software = gpuTier.tier === 0 || SOFTWARE_RENDERER.test(gpuTier.gpu ?? '');
+    if (!software) this.addReflections(renderer);
     // detect-gpu looks the GPU's name up in its benchmarks. When the name is hidden or unknown it
     // says FALLBACK (tier 1): Brave, for one, gives every user the same generic name to stop
     // fingerprinting. Rather than never showing those the fog, it goes on trial.
-    const unknown = gpuTier.type === 'FALLBACK' && !SOFTWARE_RENDERER.test(gpuTier.gpu ?? '');
+    const unknown = gpuTier.type === 'FALLBACK' && !software;
     if (gpuTier.tier <= 1 && !unknown) return;
     this.fog = new Fog(this.reducedMotion.matches);
     this.scene.add(this.fog.object);
@@ -502,6 +536,7 @@ void main() {
     this.canvasHost().nativeElement.removeEventListener('wheel', this.onWheel);
     this.timer.dispose();
     disposeObject(this.scene);
+    this.scene.environment?.dispose();
     // The Perlin mesh isn't in the scene yet if we left while its shaders compiled
     if (this.mesh && !this.mesh.parent) disposeObject(this.mesh);
     this.renderer?.dispose();
