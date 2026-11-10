@@ -18,23 +18,36 @@
     overflow: hidden;
 }
 
-/* Faint hex grid with the odd cell lighting up, behind everything */
+/* Faint honeycomb with the odd cell lighting up, behind everything */
 .grid {
     position: absolute;
     inset: 0;
-    background:
-        linear-gradient(60deg, transparent 49.5%, rgb(255 122 0 / 22%) 50%, transparent 50.5%) 0 0 / 52px 90px,
-        linear-gradient(-60deg, transparent 49.5%, rgb(255 122 0 / 22%) 50%, transparent 50.5%) 0 0 / 52px 90px,
-        linear-gradient(90deg, transparent 49%, rgb(255 122 0 / 12%) 50%, transparent 51%) 0 0 / 52px 90px;
 }
 
+.honeycomb {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: rgb(255 122 0 / 16%);
+    stroke-width: 1;
+}
+
+/* A lit cell: a faint fill with brighter edges, laid exactly over one of the honeycomb's cells */
 .grid i {
     position: absolute;
-    width: 46px;
-    aspect-ratio: 1.1547;
-    clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
-    background: var(--orange);
+    width: 52px;
+    height: 45.0333px;
     opacity: 0;
+}
+
+.grid i svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: rgb(255 122 0 / 12%);
+    stroke: rgb(255 122 0 / 70%);
+    stroke-width: 2;
 }
 
 /* Sized to fit beside the readouts */
@@ -107,15 +120,17 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .grid i { animation: flash 4s steps(1) infinite; }
+    .grid i { animation: flash 4s infinite; }
     .console a:hover,
     .console a:focus-visible { animation: alarm 0.5s steps(1) infinite; }
 }
 
+/* A flicker on, with the theme's hard cuts, then a slow fade back into the grid */
 @keyframes flash {
-    0% { opacity: 0.5; }
-    6% { opacity: 0.15; }
-    12% { opacity: 0; }
+    0% { opacity: 1; animation-timing-function: steps(1); }
+    3% { opacity: 0.3; animation-timing-function: steps(1); }
+    6% { opacity: 1; animation-timing-function: ease-in; }
+    40%, 100% { opacity: 0; }
 }
 
 @keyframes alarm {
