@@ -1,11 +1,11 @@
-import { AfterViewInit, Component, computed, effect, ElementRef, inject, OnDestroy, OnInit, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
+import { AfterViewInit, Component, computed, effect, ElementRef, inject, input, OnDestroy, OnInit, signal, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { Box3, DirectionalLight, Euler, IcosahedronGeometry, IUniform, Mesh, Object3D, PerspectiveCamera, Scene, ShaderMaterial, Texture, Timer, Vector2, Vector3, WebGLRenderer } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ASSET_PATH } from '../assets';
 import { Fog } from '../fog/fog';
 import { Item, Model } from '../item';
-import { ITEM_TEXTS, SkyrimItem } from '../skyrim-item';
+import { ClearBand, ITEM_TEXTS, SkyrimItem } from '../skyrim-item';
 import { getGPUTier } from 'detect-gpu';
 import { Gestures } from '../themes/gestures';
 
@@ -29,6 +29,8 @@ const SPIN_FRICTION = 2.5;
 const MAX_SPIN = 12;
 // The item stays at least this long after it was last touched, before the next can replace it
 const IDLE_MS = 10_000;
+// On portrait screens a model, as it turns, fills this much of the screen's width
+const SIDE_FILL = 0.92;
 
 // Example of smoke with three.js
 // https://codepen.io/sbrl/pen/zNdqdd?editors=0110
@@ -92,6 +94,10 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
 
   // Responsive camera positioning
   private aspectRatio = signal<number>(window.innerWidth / window.innerHeight);
+  /** The strip between the name and links and the caption, which a model fills on portrait screens. */
+  readonly band = input<ClearBand>({ top: 0.12, bottom: 0.7 });
+  // How much room the shown model takes, so the camera can frame it
+  private readonly fit = signal<Fit>({ radius: 22, minY: 0, maxY: 20 });
 
   constructor() {
     let initialIndex = this.GetRandomInt(0, this.positions.length - 1);
@@ -409,6 +415,7 @@ void main() {
       this.model = gltf.scene;
       // Measured before it's moved, scaled or turned, so world and model coordinates are the same
       new Box3().setFromObject(this.model).getCenter(this.modelCentre);
+      this.fit.set(measure(this.model, item.scaleOnLoad ?? this.DEFAULT_SCALE, item.rotationOnLoad ?? this.DEFAULT_ROTATION));
       this.scene.add(this.model);
       this.onLoaded();
     });
@@ -566,11 +573,8 @@ void main() {
   private readonly BASE_CAM_Z = 80; // Base camera Z position for desktop
   // Half the camera's vertical field of view, PerspectiveCamera defaults to 50 degrees
   private readonly TAN_HALF_FOV = Math.tan(25 * Math.PI / 180);
-  // The models all spawn at x = -20 and z = 15..30; the widest (the cart) is ~28 units across.
-  // Keeping 22 units either side of it leaves room for the caption on tablets
+  // The models all spawn at x = -20
   private readonly MODEL_X = -20;
-  private readonly MODEL_Z = 30;
-  private readonly MODEL_HALF_WIDTH = 22;
 
   // How far to pan towards the models: 0 on landscape screens, where they sit left of the caption,
   // up to 1 on portrait ones, which are too narrow to show x = -20 without shrinking the model.
@@ -580,8 +584,40 @@ void main() {
     return Math.min(Math.max((1.2 - this.aspectRatio()) / 0.5, 0), 1);
   });
 
-  // Pan down a little too, so the models sit between the name at the top and the caption below
-  public lookAtPosition = computed(() => new Vector3(this.MODEL_X * this.pan(), -5 * this.pan(), 0));
+  /**
+   * Where a camera looking straight down -z sees the model as big as it can, wherever it drifts and
+   * however it turns: no wider than SIDE_FILL of the screen, and between the top and bottom of the band.
+   */
+  private readonly framing = computed(() => {
+    const { radius, minY, maxY } = this.fit();
+    const band = this.band();
+    const tan = this.TAN_HALF_FOV;
+    // The band's edges in clip space, where the screen runs from 1 at the top to -1 at the bottom
+    const top = 1 - 2 * band.top;
+    const bottom = 1 - 2 * band.bottom;
+    const nearest = Math.max(...this.positions.map(p => p.z));
+    // Turning, it sweeps a cylinder of this radius. Seen from `distance` away its outline is
+    // radius / sqrt(distance² - radius²) wide, in tangents of the angle
+    const across = SIDE_FILL * tan * this.aspectRatio();
+    let distance = radius * Math.sqrt(1 + 1 / (across * across));
+    // Its top and bottom are seen at their largest at the front of the cylinder, at camera z minus
+    // (nearest + distance - p.z - radius) for a spot p. The top at the highest spot must stay under
+    // the band's top, and the bottom at the lowest above its bottom; that holds from this distance on
+    const ahead = (p: Vector3) => nearest - p.z - radius;
+    for (const high of this.positions) for (const low of this.positions) {
+      const needed = (high.y + maxY - low.y - minY) / tan - top * ahead(high) + bottom * ahead(low);
+      distance = Math.max(distance, needed / (top - bottom));
+    }
+    // Then the camera's height that leaves as much room above as below
+    const room = (p: Vector3) => (nearest + distance - p.z - radius) * tan;
+    const lowest = Math.max(...this.positions.map(p => p.y + maxY - top * room(p)));
+    const highest = Math.min(...this.positions.map(p => p.y + minY - bottom * room(p)));
+    return new Vector3(this.MODEL_X, (lowest + highest) / 2, nearest + distance);
+  });
+
+  // Panned towards the framing, which on portrait screens puts the models between the name at the
+  // top and the caption below
+  public lookAtPosition = computed(() => new Vector3(this.MODEL_X * this.pan(), this.framing().y * this.pan(), 0));
 
   public camPosition = computed(() => {
     const aspect = this.aspectRatio();
@@ -591,9 +627,8 @@ void main() {
       const z = aspect < 1 ? this.BASE_CAM_Z * (1 + (1 - aspect) * 2) : this.BASE_CAM_Z;
       return new Vector3(0, 0, z);
     }
-    // On narrow screens back off just enough that a whole model fits across the width
-    const distance = Math.max(this.BASE_CAM_Z - this.MODEL_Z, this.MODEL_HALF_WIDTH / (this.TAN_HALF_FOV * aspect));
-    return new Vector3(lookAt.x, lookAt.y, this.MODEL_Z + distance);
+    const pan = this.pan();
+    return new Vector3(lookAt.x, lookAt.y, this.BASE_CAM_Z * (1 - pan) + this.framing().z * pan);
   });
 
   private handleResize = () => this.updateAspectRatio();
@@ -725,6 +760,36 @@ void main() {
 
     this.zoomItem();
   }
+}
+
+/** How much room a model takes, about the point it's placed by. */
+interface Fit {
+  // Of the cylinder it sweeps turning about the vertical
+  radius: number;
+  // How far it reaches below and above
+  minY: number;
+  maxY: number;
+}
+
+/** Measures a model at the scale and rotation it's shown at, unmoved and not yet turned about the vertical. */
+function measure(model: Object3D, scale: Vector3, rotation: Euler): Fit {
+  model.scale.copy(scale);
+  model.rotation.copy(rotation);
+  model.updateMatrixWorld(true);
+  // Vertex by vertex: a bounding box's corners stick out well past a rounded model like the cat
+  const fit = { radius: 0, minY: Infinity, maxY: -Infinity };
+  const vertex = new Vector3();
+  model.traverse(o => {
+    if (!(o instanceof Mesh)) return;
+    const position = o.geometry.getAttribute('position');
+    for (let i = 0; i < position.count; i++) {
+      vertex.fromBufferAttribute(position, i).applyMatrix4(o.matrixWorld);
+      fit.radius = Math.max(fit.radius, Math.hypot(vertex.x, vertex.z));
+      fit.minY = Math.min(fit.minY, vertex.y);
+      fit.maxY = Math.max(fit.maxY, vertex.y);
+    }
+  });
+  return fit;
 }
 
 function clamp(value: number, min: number, max: number) {

@@ -6,6 +6,12 @@ export interface ItemText {
   attribution: Attribution;
 }
 
+/** The strip of the screen between the name and links and the caption, as fractions of its height from the top. */
+export interface ClearBand {
+  top: number;
+  bottom: number;
+}
+
 export interface Attribution {
   short: string;
   long: string;
