@@ -66,6 +66,18 @@ describe('RidgeComponent', () => {
     expect(caption()).toBe('');
   });
 
+  it('picks out the tapped week, and keeps it once the finger lifts', async () => {
+    stubMatchMedia(REDUCED_MOTION);
+    fakeCanvas();
+    const { fixture, el, canvas } = await create();
+    const touch = (type: string, clientY = 0) =>
+      canvas.dispatchEvent(Object.defineProperty(new MouseEvent(type, { clientY }), 'pointerType', { value: 'touch' }));
+    touch('pointerdown', 470);
+    touch('pointerleave');
+    fixture.detectChanges();
+    expect(el.querySelector('.caption')!.textContent).toBe('Week of 2026-11-08: 12 contributions');
+  });
+
   it('steps through the weeks with the arrow keys', async () => {
     stubMatchMedia(REDUCED_MOTION);
     fakeCanvas();

@@ -17,13 +17,13 @@ const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 /**
  * A year of contributions as a landscape: one ridge per week, oldest at the back, each day a hill
- * as tall as its count. Hovering (or the arrow keys) picks out a week.
+ * as tall as its count. Hovering, a tap or the arrow keys pick out a week.
  */
 @Component({
   selector: 'app-ridge',
   template: `
     <canvas #canvas tabindex="0" role="img" [attr.aria-label]="label()"
-      (pointermove)="hover($event)" (pointerleave)="pick(null)" (keydown)="step($event)"></canvas>
+      (pointermove)="hover($event)" (pointerdown)="hover($event)" (pointerleave)="leave($event)" (keydown)="step($event)"></canvas>
     <p class="caption" aria-live="polite">{{ caption() }}</p>
   `,
   styles: `
@@ -86,6 +86,11 @@ export class RidgeComponent {
     const { top, gap } = this.layout(rect.width, rect.height);
     const row = Math.round((event.clientY - rect.top - top) / gap);
     this.pick(Math.max(0, Math.min(this.weeks().length - 1, row)));
+  }
+
+  /** A finger lifting off also leaves, so a tapped week stays picked until the next tap. */
+  protected leave(event: PointerEvent) {
+    if (event.pointerType !== 'touch') this.pick(null);
   }
 
   protected step(event: KeyboardEvent) {

@@ -165,8 +165,8 @@ export function repoCard(repo: Repo) {
   ].join('\n');
 }
 
-/** The year as a one-line summary under the landscape. */
-export function contribSummary(days: readonly Day[]) {
+/** The year as a one-line summary under the landscape. On a touch screen a week is picked by tapping. */
+export function contribSummary(days: readonly Day[], touch = false) {
   const w = weeks(days);
-  return `${w.length} weeks, ${thousands(total(days))} contributions. Front is this week; hover for a week.`;
+  return `${w.length} weeks, ${thousands(total(days))} contributions. Front is this week; ${touch ? 'tap' : 'hover'} for a week.`;
 }
