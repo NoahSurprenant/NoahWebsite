@@ -4,7 +4,7 @@ import { faGear } from '@fortawesome/free-solid-svg-icons';
 import { STORAGE_KEY, ThemeService } from '../themes/theme.service';
 import { ThemeId, THEMES } from '../themes/themes';
 
-/** Set once the hint has been shown, so it's only ever shown once */
+/** Set once the menu has been opened, after which the hint isn't needed */
 const HINT_KEY = 'theme-hint';
 /** How long the hint stays, in step with its fade out in the CSS */
 export const HINT_MS = 8000;
@@ -22,8 +22,8 @@ export class ThemeSwitcherComponent {
   protected readonly faGear = faGear;
   protected readonly service = inject(ThemeService);
   private readonly menu = viewChild.required<ElementRef<HTMLElement>>('menu');
-  /** A first visit's pointer to the cog, gone once the menu opens or after a few seconds */
-  protected readonly hint = signal(this.firstVisit());
+  /** A pointer to the cog on each visit until the menu is first opened, gone after a few seconds */
+  protected readonly hint = signal(this.unseen());
 
   constructor() {
     if (!this.hint()) return;
@@ -38,14 +38,22 @@ export class ThemeSwitcherComponent {
     this.menu().nativeElement.hidePopover?.();
   }
 
-  /** Whether this is the first look at the site: no hint shown before and no theme picked. Notes it. */
-  private firstVisit() {
+  /** The menu opened: no more hints, now or on later visits */
+  protected opened() {
+    this.hint.set(false);
     try {
-      if (localStorage.getItem(HINT_KEY) || localStorage.getItem(STORAGE_KEY)) return false;
       localStorage.setItem(HINT_KEY, '1');
-      return true;
     } catch {
-      // Storage is off (some private modes): better no hint than one on every page load
+      // Storage is off (some private modes): the hint is never shown there anyway
+    }
+  }
+
+  /** Whether the menu has never been opened here: no note of it, and no theme picked. */
+  private unseen() {
+    try {
+      return !localStorage.getItem(HINT_KEY) && !localStorage.getItem(STORAGE_KEY);
+    } catch {
+      // Storage is off (some private modes): better no hint than one on every page load for good
       return false;
     }
   }

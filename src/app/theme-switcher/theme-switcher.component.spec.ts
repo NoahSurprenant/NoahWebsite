@@ -56,17 +56,29 @@ describe('ThemeSwitcherComponent hint', () => {
     expect(hint()).toBeNull();
   });
 
-  it('goes as soon as the menu opens', async () => {
+  it('goes as soon as the menu opens, and for good', async () => {
     const { fixture, el, hint } = await create();
     el.querySelector('#theme-menu')!.dispatchEvent(new Event('toggle'));
     await fixture.whenStable();
     expect(hint()).toBeNull();
+    fixture.destroy();
+    expect((await create()).hint()).toBeNull();
   });
 
-  it('shows only once', async () => {
+  it('comes back on the next visit until the menu has been opened', async () => {
     const first = await create();
     first.fixture.destroy();
-    expect((await create()).hint()).toBeNull();
+    expect((await create()).hint()).not.toBeNull();
+  });
+
+  it('still goes when the menu opens if storage refuses the note', async () => {
+    const { fixture, el, hint } = await create();
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+    el.querySelector('#theme-menu')!.dispatchEvent(new Event('toggle'));
+    await fixture.whenStable();
+    expect(hint()).toBeNull();
   });
 
   it('is not needed by someone who has picked a theme before', async () => {

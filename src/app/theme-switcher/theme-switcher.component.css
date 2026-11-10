@@ -72,7 +72,7 @@
     content: " \2713";
 }
 
-/* A first visit's "N themes" beside the cog, its point towards it */
+/* Until the menu is first opened, an "N themes" beside the cog, its point towards it */
 .hint {
     position: fixed;
     top: 25px;

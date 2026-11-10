@@ -10,7 +10,7 @@
 </button>
 }
 
-<div #menu id="theme-menu" class="menu" popover role="group" aria-label="Themes" (toggle)="hint.set(false)">
+<div #menu id="theme-menu" class="menu" popover role="group" aria-label="Themes" (toggle)="opened()">
     @for (theme of themes; track theme.id) {
     <button type="button" [attr.aria-pressed]="service.theme() === theme.id" (click)="select(theme.id)">
         {{ theme.label }}
