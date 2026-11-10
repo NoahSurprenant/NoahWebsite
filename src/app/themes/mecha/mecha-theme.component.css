@@ -18,25 +18,30 @@
     overflow: hidden;
 }
 
-/* Faint hex grid with the odd cell lighting up, behind everything */
+/* Faint honeycomb with the odd cell lighting up, behind everything */
 .grid {
     position: absolute;
     inset: 0;
-    background:
-        linear-gradient(60deg, transparent 49.5%, rgb(255 122 0 / 22%) 50%, transparent 50.5%) 0 0 / 52px 90px,
-        linear-gradient(-60deg, transparent 49.5%, rgb(255 122 0 / 22%) 50%, transparent 50.5%) 0 0 / 52px 90px,
-        linear-gradient(90deg, transparent 49%, rgb(255 122 0 / 12%) 50%, transparent 51%) 0 0 / 52px 90px;
 }
 
-/* A lit cell: a faint fill with brighter edges, laid exactly over one of the grid's diamonds */
+.honeycomb {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: rgb(255 122 0 / 22%);
+    stroke-width: 1;
+}
+
+/* A lit cell: a faint fill with brighter edges, laid exactly over one of the honeycomb's cells */
 .grid i {
     position: absolute;
     width: 52px;
-    height: 90px;
+    height: 45.0333px;
     opacity: 0;
 }
 
-.grid svg {
+.grid i svg {
     display: block;
     width: 100%;
     height: 100%;

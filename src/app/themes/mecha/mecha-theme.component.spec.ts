@@ -25,18 +25,21 @@ describe('MechaThemeComponent', () => {
     expect(el.querySelectorAll('.grid i').length).toBe(12);
   });
 
-  it('lights up whole cells of the background grid, never between its lines', async () => {
+  it('lights up whole cells of the background honeycomb, never between them', async () => {
     stubMatchMedia();
     fakeCanvas();
     manualFrames();
     const fixture = TestBed.createComponent(MechaThemeComponent);
     await fixture.whenStable();
+    const height = 26 * Math.sqrt(3);
     for (const cell of (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.grid i')) {
-      // Each cell's centre is 26px across and 45px down from its corner, on the lines' half-steps
-      const across = (parseFloat(cell.style.left) + 26) / 26;
-      const down = (parseFloat(cell.style.top) + 45) / 45;
-      expect(Number.isInteger(across) && Number.isInteger(down)).toBe(true);
-      expect((across + down) % 2).toBe(1);
+      // The pattern's cells are centred 26px + 39px per column across, and half a cell down + a
+      // cell per row, every other column half a cell higher
+      const col = parseFloat(cell.style.left) / 39;
+      expect(Number.isInteger(col)).toBe(true);
+      const centre = (parseFloat(cell.style.top) + height / 2) / height;
+      const row = centre - 0.5 + (col % 2) / 2;
+      expect(row).toBeCloseTo(Math.round(row), 6);
     }
   });
 
