@@ -185,6 +185,8 @@ const SIZES = [
   // A phone on its side with the browser's address and tab bars showing: little height is left
   ['phone-landscape', 820, 300],
   ['phone-portrait', 360, 640],
+  // A taller phone, with room for more of the readouts
+  ['phone-portrait', 390, 844],
 ] as const;
 
 // Per theme, the parts that must each be fully on screen and must not overlap one another.

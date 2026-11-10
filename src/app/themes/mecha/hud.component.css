@@ -74,6 +74,12 @@ canvas {
     .sync, .vote { display: none; }
 }
 
+/* Tall upright ones (most phones and tablets) have room for the waveforms under the battery,
+   even with the longest title; a tablet on its side, with its bigger title, doesn't */
+@media (max-width: 1100px) and (min-height: 760px) and (orientation: portrait) {
+    .sync { display: block; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
     .timer.low {
         animation: blink 0.8s steps(1) infinite;
