@@ -19,15 +19,15 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /**
  * A year of contributions as a landscape: one ridge per week, oldest at the back, each day a hill
- * as tall as its count. Hovering (or the arrow keys) picks out a week. Where there's room, the week
- * is broken down by day beside it, over a few numbers for the year.
+ * as tall as its count. Hovering, a tap or the arrow keys pick out a week. Where there's room, the
+ * week is broken down by day beside it, over a few numbers for the year.
  */
 @Component({
   selector: 'app-ridge',
   template: `
     <div class="ridge">
       <canvas #canvas tabindex="0" role="img" [attr.aria-label]="label()"
-        (pointermove)="hover($event)" (pointerleave)="pick(null)" (keydown)="step($event)"></canvas>
+        (pointermove)="hover($event)" (pointerdown)="hover($event)" (pointerleave)="leave($event)" (keydown)="step($event)"></canvas>
       <p class="caption" aria-live="polite">{{ caption() }}</p>
       <pre class="details">{{ details() }}</pre>
     </div>
@@ -125,6 +125,11 @@ export class RidgeComponent {
     const { top, gap } = this.layout(rect.width, rect.height);
     const row = Math.round((event.clientY - rect.top - top) / gap);
     this.pick(Math.max(0, Math.min(this.weeks().length - 1, row)));
+  }
+
+  /** A finger lifting off also leaves, so a tapped week stays picked until the next tap. */
+  protected leave(event: PointerEvent) {
+    if (event.pointerType !== 'touch') this.pick(null);
   }
 
   protected step(event: KeyboardEvent) {
