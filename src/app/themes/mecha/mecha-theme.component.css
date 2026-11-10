@@ -152,16 +152,23 @@
     .console ul { justify-content: space-between; }
 }
 
-/* Phones either way up: a smaller console */
-@media (max-width: 600px), (max-height: 500px) and (min-aspect-ratio: 1/1) {
+/* Phones either way up, and short windows: a smaller console */
+@media (max-width: 600px), (max-height: 719px) and (min-aspect-ratio: 1/1) {
     .console-header { font-size: 12px; }
     .console ul { gap: 4px; padding: 10px; }
     .console a { width: 72px; font-size: 10px; }
     .console fa-icon { font-size: 20px; }
 }
 
-/* Short landscape screens (a phone on its side): the card and links side by side, no readouts */
-@media (max-height: 500px) and (min-aspect-ratio: 1/1) {
+/* Short windows (small laptops, a browser not maximised): less room around everything, and the
+   card sized by height too with long titles in wider lines, so the links stay clear of the banner */
+@media (max-height: 719px) and (min-aspect-ratio: 1/1) {
+    .screen { row-gap: 16px; padding-top: 56px; padding-bottom: 52px; }
+    .card { --card-size: clamp(36px, min(7.5vw, 9vh), 160px); --title-width: 22em; }
+}
+
+/* Shorter still (a phone on its side): the card and links side by side, no readouts */
+@media (max-height: 540px) and (min-aspect-ratio: 1/1) {
     .screen { grid-template: "card console" 1fr / minmax(0, 1fr) auto; padding: 60px 24px 48px; }
     /* By height too, and long titles in wider lines, so even the longest leaves the banner clear */
     .card { --card-size: clamp(28px, min(7vw, 14vh), 60px); --title-width: 22em; }
