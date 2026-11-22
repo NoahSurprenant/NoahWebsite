@@ -9,11 +9,10 @@ import { ClearBand, ITEM_TEXTS, SkyrimItem } from '../skyrim-item';
 import { getGPUTier } from 'detect-gpu';
 import { Gestures } from '../themes/gestures';
 
-// An unrecognised GPU gets the fog on trial: it stays if the frames over this long, once every
-// puff is in, average 40fps or better. One frame slower than the last ends the trial at once.
+// Measure the animated scene once all the puffs are present.
 const FOG_TRIAL_MS = 1500;
 const SLOW_FRAME_MS = 1000 / 40;
-const STALL_MS = 100;
+const FOG_MIN_FPS = 25;
 // GPU names that mean there is no GPU, the drawing is done on the CPU: no fog. detect-gpu's own
 // blocklist misses how Chromium names SwiftShader now ("Google, SwiftShader Device (Subzero)")
 const SOFTWARE_RENDERER = /swiftshader|llvmpipe|softpipe|basic render|software/i;
@@ -62,6 +61,9 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
   private renderer?: WebGLRenderer;
   private resizeObserver?: ResizeObserver;
   private frameId?: number;
+  private frameInterval = 0;
+  private nextDraw = 0;
+  private pixelRatioCap = 2;
   private readonly scene = new Scene();
   private readonly camera = new PerspectiveCamera();
   private readonly gltfLoader = new GLTFLoader();
@@ -77,7 +79,6 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
   private dprQuery?: MediaQueryList;
 
   // Honour the OS "reduce motion" setting: keep the scene, but hold it still.
-  // `matches` is live, so checking it every frame also picks up changes while the page is open.
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   // Input: drags turn the item (spin about the vertical, tilt about the horizontal) and the wheel or a
@@ -121,6 +122,7 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
     effect(() => {
       this.camera.position.copy(this.camPosition());
       this.camera.lookAt(this.lookAtPosition());
+      this.requestFrame();
     });
     effect(() => this.loadItem(this.item()));
   }
@@ -132,6 +134,7 @@ export class SkyrimLoadingComponent implements OnInit, AfterViewInit, OnDestroy 
     // Add resize listener
     window.addEventListener('resize', this.handleResize);
     document.addEventListener('visibilitychange', this.restartFrameClock);
+    this.reducedMotion.addEventListener('change', this.restartFrameClock);
   }
 
   // The Perlin sphere is only one of the items, so it's built the first time it's shown
@@ -313,10 +316,16 @@ void main() {
     // says FALLBACK (tier 1): Brave, for one, gives every user the same generic name to stop
     // fingerprinting. Rather than never showing those the fog, it goes on trial.
     const unknown = gpuTier.type === 'FALLBACK' && !software;
-    if (gpuTier.tier <= 1 && !unknown) return;
-    this.fog = new Fog(this.reducedMotion.matches);
+    const lowPower = software || (gpuTier.tier <= 1 && !unknown);
+    this.frameInterval = 1000 / (lowPower ? 30 : 60);
+    this.pixelRatioCap = lowPower ? 1 : 1.5;
+    if (lowPower) {
+      this.resize();
+      return;
+    }
+    this.fog = new Fog(this.reducedMotion.matches, () => this.requestFrame());
     this.scene.add(this.fog.object);
-    if (unknown) this.fogTrial = [];
+    this.fogTrial = [];
     // The fog lowers the pixel ratio cap
     this.resize();
   }
@@ -365,10 +374,16 @@ void main() {
 
   private touched() {
     this.lastTouched = performance.now();
+    this.requestFrame();
   }
 
   // A hidden tab gets no frames: the gap until it's back isn't a slow frame
-  private restartFrameClock = () => (this.lastFrame = undefined);
+  private restartFrameClock = () => {
+    this.lastFrame = undefined;
+    this.nextDraw = 0;
+    this.timer.update();
+    this.requestFrame();
+  };
 
   /** Times the frames while the fog is on trial, and takes it out again if they're too slow. */
   private judgeFog(now: number) {
@@ -378,15 +393,15 @@ void main() {
     if (!this.fogTrial || !this.fog || last === undefined || this.fog.smokeData.length < this.fog.NUM_INSTANCES) return;
     this.fogTrial.push(now - last);
     const total = this.fogTrial.reduce((sum, ms) => sum + ms);
-    const stalled = now - last > STALL_MS;
-    if (total < FOG_TRIAL_MS && !stalled) return;
+    if (total < FOG_TRIAL_MS) return;
     const average = total / this.fogTrial.length;
     this.fogTrial = undefined;
-    if (stalled || average > SLOW_FRAME_MS) {
+    if (average > SLOW_FRAME_MS) this.frameInterval = 1000 / 30;
+    if (average > 1000 / FOG_MIN_FPS) {
       this.scene.remove(this.fog.object);
       disposeObject(this.fog.object);
       this.fog = undefined;
-      // Back to the higher pixel ratio cap
+      this.pixelRatioCap = 1;
       this.resize();
     }
   }
@@ -396,10 +411,8 @@ void main() {
     const width = host.clientWidth;
     const height = host.clientHeight;
     if (this.renderer) {
-      // Render at the screen's real resolution so phones and HiDPI screens aren't blurry. Capped
-      // because fill cost grows with the square of the ratio: 2 when the scene is light, 1.5 with
-      // the fog, whose 500 overlapping transparent planes are fill-bound and soft anyway.
-      const pixelRatio = Math.min(window.devicePixelRatio, this.fog ? 1.5 : 2);
+      // Fill cost grows with the square of the pixel ratio.
+      const pixelRatio = Math.min(window.devicePixelRatio, this.pixelRatioCap);
       const size = this.renderer.getSize(new Vector2());
       // Resizing reallocates the drawing buffer, which is slow, and this runs several times on load
       if (pixelRatio !== this.renderer.getPixelRatio() || size.x !== width || size.y !== height) {
@@ -410,6 +423,7 @@ void main() {
     }
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+    this.requestFrame();
   }
 
   private watchPixelRatio = () => {
@@ -421,11 +435,21 @@ void main() {
   };
 
   private requestFrame() {
+    if (!this.renderer || this.destroyed || this.frameId !== undefined) return;
     this.frameId = requestAnimationFrame((now) => {
-      this.judgeFog(now);
+      this.frameId = undefined;
+      const still = this.reducedMotion.matches;
+      if (!still && now + 1 < this.nextDraw) {
+        this.requestFrame();
+        return;
+      }
+      if (!still) this.judgeFog(now);
+      // Keep the deadline on cadence across fractional display refresh intervals.
+      this.nextDraw += this.frameInterval;
+      if (this.nextDraw <= now) this.nextDraw = now + this.frameInterval;
       this.onBeforeRender();
       this.renderer?.render(this.scene, this.camera);
-      this.requestFrame();
+      if (!still || this.fog?.building) this.requestFrame();
     });
   }
 
@@ -528,6 +552,7 @@ void main() {
     window.clearInterval(this.intervalHandle);
     window.removeEventListener('resize', this.handleResize);
     document.removeEventListener('visibilitychange', this.restartFrameClock);
+    this.reducedMotion.removeEventListener('change', this.restartFrameClock);
     this.dprQuery?.removeEventListener('change', this.watchPixelRatio);
     this.destroyed = true;
     if (this.frameId !== undefined) cancelAnimationFrame(this.frameId);
@@ -698,6 +723,7 @@ void main() {
     // A new item starts the right way up, at the usual distance
     this.spin = this.tilt = this.spinSpeed = 0;
     this.zoomTarget = 1;
+    this.requestFrame();
   }
 
   // Seconds of animation so far, only advances while motion is allowed

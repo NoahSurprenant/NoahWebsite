@@ -105,12 +105,7 @@ test('the page loads, renders the 3D scene and cycles items, with the production
     // Item cycling. Normally a loaded model glides to a new spot (11-19 units at 0.66 units/s), then
     // a 5-15 s interval switches the item: 20-45 s in all. With prefers-reduced-motion the app skips
     // the glide (the model appears at its target on the next frame), so the switch comes 5-15 s
-    // later. The component checks the media query every frame, so turning it on now, after the scene
-    // has loaded and rendered with motion, takes the same switch path without any test hooks.
-    //
-    // Playwright's fake clock (fastForward) would skip even that wait, but it also takes over
-    // requestAnimationFrame, and SwiftShader needs ~1 s per frame for the 1M-triangle shopping cart.
-    // Together they stalled the page for 20-50 s at a time when tried, so the test waits in real time.
+    // later. Switching the preference here exercises the live transition and the real item timer.
     const firstCaption = await caption.textContent();
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await expect(caption, 'the item changes').not.toHaveText(firstCaption!, { timeout: 45_000 });
