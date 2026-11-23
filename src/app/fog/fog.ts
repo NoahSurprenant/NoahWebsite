@@ -31,7 +31,7 @@ export class Fog {
 
   // spreadStart: start each puff partway through its rise instead of fading in from the bottom.
   // Used for reduced motion, where the fog never moves and would otherwise stay invisible.
-  constructor(private readonly spreadStart = false) {
+  constructor(private readonly spreadStart = false, private readonly textureReady?: () => void) {
     // Determine the min and max possible spawn locations
     this.minX = Math.min.apply(null, this.points2D.map(i => i.x));
     this.maxX = Math.max.apply(null, this.points2D.map(i => i.x));
@@ -97,7 +97,14 @@ export class Fog {
   }
 
   private initSmokeData() {
-    this.textureLoader.load(this.cloudPath, (cloudText) => this.cloudTexture = cloudText);
+    this.textureLoader.load(this.cloudPath, cloudText => {
+      this.cloudTexture = cloudText;
+      this.textureReady?.();
+    });
+  }
+
+  get building(): boolean {
+    return !!this.cloudTexture && this.smokeData.length < this.NUM_INSTANCES;
   }
 
   private addSmoke(cloudText: Texture, count: number) {

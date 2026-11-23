@@ -184,7 +184,7 @@ describe('SkyrimLoadingComponent', () => {
       expect(renderer().ratio).toBe(1.5);
     });
 
-    it('takes the fog out at the first stalled frame once every puff is in', async () => {
+    it('retains fog through one stall and caps a sustained 30 fps scene', async () => {
       const { scene } = await create();
       mocks.state.gpu.resolve({ tier: 1, type: 'FALLBACK' } as never);
       await flush();
@@ -192,7 +192,9 @@ describe('SkyrimLoadingComponent', () => {
       const t = run(25, 16, 0);
       expect(scene['fog']).toBeDefined();
       frames.frame(t + 150);
-      expect(scene['fog']).toBeUndefined();
+      run(60, 33, t + 183);
+      expect(scene['fog']).toBeDefined();
+      expect(scene['frameInterval']).toBeCloseTo(1000 / 30);
     });
 
     it('never tries the fog on a software renderer, which has no GPU at all', async () => {
@@ -213,8 +215,7 @@ describe('SkyrimLoadingComponent', () => {
       run(120, 50, 0);
       expect(scene['fog']).toBeUndefined();
       expect(fog.object.parent).toBeNull();
-      // Back to the sharper pixel ratio
-      expect(renderer().ratio).toBe(2);
+      expect(renderer().ratio).toBe(1);
     });
   });
 
@@ -445,7 +446,40 @@ describe('SkyrimLoadingComponent', () => {
     frames.frame(16);
     expect(scene.itemPos).toEqual(scene.TargetPos);
     expect(scene.itemRot.y).toBe(rotation);
+    expect(frames.pending).toBe(0);
+    frames.resize();
+    frames.resize();
+    expect(frames.pending).toBe(1);
+    frames.frame(32);
+    expect(frames.pending).toBe(0);
     fixture.destroy();
+  });
+
+  it('paces software rendering at 30 fps on a 120 Hz display', async () => {
+    const { renderer } = await create();
+    mocks.state.gpu.resolve({ tier: 0 });
+    await flush();
+    for (let i = 0; i < 120; i++) frames.frame(i * 1000 / 120);
+    expect(renderer().renders).toBe(30);
+  });
+
+  it('rests until the fog texture arrives, completes its batches, then rests again', async () => {
+    stubMatchMedia(REDUCED_MOTION);
+    let finish!: () => void;
+    vi.mocked(TextureLoader.prototype.load).mockImplementation((_url, loaded) => {
+      const texture = new Texture();
+      finish = () => loaded?.(texture);
+      return texture;
+    });
+    const { scene } = await create();
+    mocks.state.gpu.resolve({ tier: 3 });
+    await flush();
+    frames.frame(0);
+    expect(frames.pending).toBe(0);
+    finish();
+    for (let i = 1; i <= 20; i++) frames.frame(i * 16);
+    expect(scene['fog']!.smokeData).toHaveLength(500);
+    expect(frames.pending).toBe(0);
   });
 
   it('picks a new spot different from the current one', async () => {
